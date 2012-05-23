@@ -1,11 +1,17 @@
+GHCFLAGS=-O0
+ALEXFLAGS=
+#ALEXFLAGS=--info=Tokens.info --debug
 
 test: Tokens
-	./Tokens < shifts.str
+	./Tokens < test.str
 
 Tokens: Tokens.hs
-	ghc Tokens.hs
+	ghc $(GHCFLAGS) Tokens.hs
 
 %.hs: %.x
-	alex Tokens.x
+	alex $(ALEXFLAGS) Tokens.x
 %.o : %.hs
-	ghc Tokens.hs
+	ghc $(GHCFLAGS) Tokens.hs
+
+clean:
+	rm -f `cat .gitignore`
