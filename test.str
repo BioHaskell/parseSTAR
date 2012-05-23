@@ -1,0 +1,30 @@
+data_6457
+save_entry_information
+   _Saveframe_category      entry_information
+
+   _Entry_title            
+;
+Validation of Protein Structure from Anisotropic Carbonyl Chemical Shifts in a 
+Dilute Liquid Crystalline Phase
+;
+   loop_
+      _Author_ordinal
+      _Author_family_name
+      _Author_given_name
+      _Author_middle_initials
+      _Author_family_title
+      1 Cornilescu Gabriel .  . 
+      2 Marquardt  John    L. . 
+      3 Ottiger    Marcel  .  . 
+      4 Bax        Ad      .  . 
+   stop_
+   _BMRB_accession_number   '6457'
+   _BMRB_flat_file_name     "bmr6457.str"
+save_
+
+#######################
+#  Entry information  #
+#######################
+
+! Remaining comments
+
