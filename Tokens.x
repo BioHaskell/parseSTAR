@@ -2,14 +2,14 @@
 module Main(main) where
 --module Tokens (Token(..), alexGScan) where
 -- Question: case insensitive?
--- %wrapper "gscan"
+-- NOTE: disallowed comments '!' '#' within strings (including ";")
 }
 
 %wrapper "posn"
 
 $white       = [ \t \n \f \v \r \  ]
 $nonwhite    = ~ $white # [ \# \! ] -- non-whitespace
-$nonspecial  = $nonwhite # ['"\$\;] -- not whitespace and not underline
+$nonspecial  = $nonwhite # ['"\;\$] -- not whitespace and not underline
 $nonspec     = [a-zA-Z0-9_] -- not whitespace and not underline
 $nonunder    = $nonspecial # \_ -- not whitespace and not underline
 $commentChar = [\!\#]
@@ -26,7 +26,7 @@ $nonsemi     = [^\;]
 tokens :-
   $white +                                 ;
   $commentChar .* $eoln                    ;
-  $under $nonspec*   / $white              { tok (\p s -> Name p . drop (length "_") $ s ) }  
+  $under $nonspecial*   / $white              { tok (\p s -> Name p . drop (length "_") $ s ) }  
   "save_" $nonspecial+                     { tok (\p s -> Save p . drop (length "save_") $ s) }
   "save_"   / $white                       { tok (\p s -> EndSave p ) }
   "stop_"                                  { tok (\p s -> EndLoop p ) }

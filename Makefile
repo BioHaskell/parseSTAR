@@ -1,4 +1,4 @@
-GHCFLAGS=-O0
+GHCFLAGS=
 ALEXFLAGS=
 #ALEXFLAGS=--info=Tokens.info --debug
 
