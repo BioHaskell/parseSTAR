@@ -1,6 +1,5 @@
 {
-module Main(main) where
---module Tokens (Token(..), alexGScan) where
+module Tokens (Token(..), alexScan, AlexPosn(..), AlexReturn(..), alexStartPos) where
 -- Question: case insensitive?
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
 }
@@ -83,18 +82,4 @@ data Token =
 firstLine  = takeWhile (/= '\n')
 --firstLines s = intersperse "\n" . take 2 . splitWith '\n' $ s
 
-myScanTokens str = go (alexStartPos,'\n',[],str)
-  where go inp@(pos,_,_,str) =
-          case alexScan inp 0 of
-                AlexEOF -> return []
-                AlexError ((AlexPn _ line column),_,_,_) -> error $ "lexical error at " ++ (show line) ++ " line, " ++ (show column) ++ " column"
-                AlexSkip  inp' len     -> go inp'
-                AlexToken inp' len act -> do print $ act pos (take len str) 
-                                             go inp'
-
--- Test
-main = do
-  s <- getContents
-  let startInput = (AlexPn 0 0 0, '\n', [], s)
-  myScanTokens s
 }

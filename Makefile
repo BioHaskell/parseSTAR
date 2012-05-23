@@ -2,15 +2,15 @@ GHCFLAGS=
 ALEXFLAGS=
 #ALEXFLAGS=--info=Tokens.info --debug
 
-test: Tokens
-	./Tokens < test.str
+test: TestTokens
+	./TestTokens < test.str
 
-Tokens: Tokens.hs
-	ghc $(GHCFLAGS) Tokens.hs
+TestTokens: TestTokens.hs Tokens.hi
+	ghc $(GHCFLAGS) TestTokens.hs
 
 %.hs: %.x
 	alex $(ALEXFLAGS) Tokens.x
-%.o : %.hs
+%.o %.hi: %.hs
 	ghc $(GHCFLAGS) Tokens.hs
 
 clean:
