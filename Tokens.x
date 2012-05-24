@@ -1,5 +1,5 @@
 {
-module Tokens (Token(..), alexScan, AlexPosn(..), AlexReturn(..), alexStartPos) where
+module Tokens (Token(..), alexScan, alexScanTokens, AlexPosn(..), AlexReturn(..), alexStartPos) where
 -- Question: case insensitive?
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
 }
