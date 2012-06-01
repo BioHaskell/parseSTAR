@@ -5,3 +5,4 @@ Tokens.hs
 Parser.hs
 TestTokens
 Parser
+errs

@@ -3,7 +3,8 @@ ALEXFLAGS=
 #ALEXFLAGS=--info=Tokens.info --debug
 HAPPYFLAGS=--ghc --decode
 
-test: test_tokens test_parser
+test: test_parser
+#test: test_tokens test_parser
 
 test_tokens: TestTokens
 	./TestTokens < test.str
