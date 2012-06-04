@@ -12,7 +12,7 @@ test_tokens: TestTokens
 test_parser: Parser
 	./Parser < test.str
 
-Parser: Parser.hs Tokens.hs Tokens.hi
+Parser: Parser.hs Tokens.hs Tokens.hi ParserMonad.hs ParserMonad.hi
 	ghc $(GHCFLAGS) $<
 
 TestTokens: TestTokens.hs Tokens.hi
@@ -22,7 +22,7 @@ TestTokens: TestTokens.hs Tokens.hi
 	alex $(ALEXFLAGS) $<
 
 %.o %.hi: %.hs
-	ghc $(GHCFLAGS) Tokens.hs
+	ghc $(GHCFLAGS) $<
 
 %.hs: %.y
 	happy $(HAPPYFLAGS) $<

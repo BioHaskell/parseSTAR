@@ -2,6 +2,7 @@
 module Parser (main) where
 
 import Tokens
+import ParserMonad
 
 }
 
@@ -9,7 +10,7 @@ import Tokens
 %name     parseSTAR valueListEntry
 %tokentype { Token }
 %monad     { Parser }
-%lexer     { alexScan } { AlexEOF }
+%lexer     { getToken } { AlexEOF }
 
 %token
     Name     { Name }

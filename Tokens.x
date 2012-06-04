@@ -1,5 +1,8 @@
 {
-module Tokens (Token(..), alexScan, alexScanTokens, AlexPosn(..), AlexReturn(..), alexStartPos) where
+module Tokens (Token(..), alexScan, alexScanTokens,
+               AlexPosn(..), AlexReturn(..), AlexInput(..),
+               alexStartPos,
+              ) where
 -- Question: case insensitive?
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
 }
@@ -76,6 +79,7 @@ data Token =
         Data    AlexPosn String  |
         Global  AlexPosn         |
         Ref     AlexPosn String  |
+        EOF     AlexPosn         |
         Err     String AlexPosn String
   deriving (Eq,Show)
 
