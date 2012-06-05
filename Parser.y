@@ -12,20 +12,20 @@ import Control.Monad(liftM2)
 %name     parseSTAR valueListEntry
 %tokentype { Token }
 %monad     { Parser     } { parseThen } { parseReturn }
-%lexer     { getToken   } { EOF p }
+%lexer     { getToken   } { EOF }
 %error     { parseError }
 
 %token
-    Name     { Name    p n }
-    Text     { Text    p t }
-    Save     { Save    p s }
-    Endsave  { EndSave p   }
-    Loop     { Loop    p   }
-    EndLoop  { EndLoop p   }
-    Data     { Data    p d }
-    Global   { Global  p   }
-    Ref      { Ref     p n }
---  err      { Err         }
+    Name     { Name    n }
+    Text     { Text    t }
+    Save     { Save    s }
+    Endsave  { EndSave   }
+    Loop     { Loop      }
+    EndLoop  { EndLoop   }
+    Data     { Data    d }
+    Global   { Global    }
+    Ref      { Ref     n }
+--  err      { Err       }
 %%
 
 list(a)  : a list(a) { $1:$2 }

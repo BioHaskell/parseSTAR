@@ -64,8 +64,7 @@ globalSTARKey = ""
 getToken :: (Token -> Parser a) -> Parser a
 getToken cont = do i <- getInput
                    case alexScan i 0 of
-                     AlexEOF              -> do p <- getPos
-                                                cont $ EOF p
+                     AlexEOF              -> cont $ EOF
                      AlexError i          -> parseFail "Lexical error"
                      AlexSkip  i' len     -> do setInput i'
                                                 getToken cont

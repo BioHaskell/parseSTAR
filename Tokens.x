@@ -1,6 +1,6 @@
 {
 module Tokens (Token(..),
-               tokenValue, tokenPosition,
+               tokenValue,
                alexScan, alexScanTokens,
                AlexPosn(..), AlexReturn(..), AlexInput(..),
                alexStartPos
@@ -28,26 +28,24 @@ $doubleQuote = [\"]
 $nonsemi     = [^\;]
 
 tokens :-
-  $white +                                 ;
-  $commentChar .* $eoln                    ;
-  $under $nonspecial*   / $white              { tok (\p s -> Name p . drop (length "_") $ s ) }  
-  "save_" $nonspecial+                     { tok (\p s -> Save p . drop (length "save_") $ s) }
-  "save_"   / $white                       { tok (\p s -> EndSave p ) }
-  "stop_"                                  { tok (\p s -> EndLoop p ) }
-  "loop_"                                  { tok (\p s -> Loop p    ) }
-  "global_"                                { tok (\p s -> Global p  ) }
-  "data_" $nonwhite+ / $white              { tok (\p s -> Data p . drop (length "data_") $ s ) }
-  $dollar $nonwhite+ / $white              { tok (\p s -> Ref  p . drop (length "$"    ) $ s ) }
-  $singleQuote $noneoln+ $singleQuote      { tok (\p s -> Text p . chop '\'' $ s ) }
-  $doubleQuote $noneoln+ $doubleQuote      { tok (\p s -> Text p . chop '\"'  $ s ) }
-  $nonunder $nonspecial* / $white          { tok (\p s -> Text p s ) }
-  ^$semi $eoln [.\n]* $semi $eoln { tok (\p s -> Text p . chopS ";\n" $ s ) }
-  --^";\n" $nonsemi* $eoln ";\n"             { tok (\p s -> Text p . chopS ";\n" $ s ) }
-  --^";\n" ( $nonsemi $noneolnsemi* $eoln )* ";\n"  { tok (\p s -> Text p . chopS ";\n" $ s ) }
+  $white +					    ;
+  $commentChar .* $eoln                                    ;
+  $under $nonspecial*   / $white                    { (\p s -> Name . drop (length "_"    ) $ s ) }  
+  "save_" $nonspecial+                              { (\p s -> Save . drop (length "save_") $ s ) }
+  "save_"   / $white                                { (\p s -> EndSave                              ) }
+  "stop_"                                           { (\p s -> EndLoop                              ) }
+  "loop_"                                           { (\p s -> Loop                              ) }
+  "global_"                                         { (\p s -> Global                              ) }
+  "data_" $nonwhite+ / $white                       { (\p s -> Data . drop (length "data_") $ s ) }
+  $dollar $nonwhite+ / $white                       { (\p s -> Ref  . drop (length "$"    ) $ s ) }
+  $singleQuote $noneoln+ $singleQuote               { (\p s -> Text . chop '\''                  $ s ) }
+  $doubleQuote $noneoln+ $doubleQuote               { (\p s -> Text . chop '\"'                  $ s ) }
+  $nonunder $nonspecial* / $white                   { (\p s -> Text s                           ) }
+  ^$semi $eoln [.\n]* $semi $eoln                   { (\p s -> Text . chopS ";\n"                  $ s ) }
+  --^";\n" $nonsemi* $eoln ";\n"                    { (\p s -> Text . chopS ";\n"                  $ s ) }
+  --^";\n" ( $nonsemi $noneolnsemi* $eoln )* ";\n"  { (\p s -> Text . chopS ";\n"                  $ s ) }
 
 {
-
-tok f p s = f p s
 
 chopS :: String -> String -> String
 chopS s t              = chopS' s s t
@@ -70,41 +68,27 @@ tailCut c (b:bs)           = b:tailCut c bs
 
 -- The token type:
 data Token =
-        White   AlexPosn         |
-        Name    AlexPosn String  |
-        Text    AlexPosn String  |
-        Comment AlexPosn String  |
-        Save    AlexPosn String  |
-        EndSave AlexPosn         |
-        Loop    AlexPosn         |
-        EndLoop AlexPosn         |
-        Data    AlexPosn String  |
-        Global  AlexPosn         |
-        Ref     AlexPosn String  |
-        EOF     AlexPosn         |
+        White           |
+        Name    String  |
+        Text    String  |
+        Comment String  |
+        Save    String  |
+        EndSave         |
+        Loop            |
+        EndLoop         |
+        Data    String  |
+        Global          |
+        Ref     String  |
+        EOF             |
         Err     String AlexPosn String
   deriving (Eq,Show)
 
-tokenPosition (Name    p s) = p
-tokenPosition (Text    p s) = p
-tokenPosition (White   p  ) = p
-tokenPosition (Comment p s) = p
-tokenPosition (Save    p s) = p
-tokenPosition (EndSave p  ) = p
-tokenPosition (Loop    p  ) = p
-tokenPosition (EndLoop p  ) = p
-tokenPosition (Data    p s) = p
-tokenPosition (Global  p  ) = p
-tokenPosition (Ref     p s) = p
-tokenPosition (EOF     p  ) = p
-tokenPosition (Err   s p r) = p
-
-tokenValue (Name    p s) = s
-tokenValue (Text    p s) = s
-tokenValue (Comment p s) = s
-tokenValue (Save    p s) = s
-tokenValue (Data    p s) = s
-tokenValue (Ref     p s) = s
+tokenValue (Name    s) = s
+tokenValue (Text    s) = s
+tokenValue (Comment s) = s
+tokenValue (Save    s) = s
+tokenValue (Data    s) = s
+tokenValue (Ref     s) = s
 tokenValue _             = error "Wrong token"
 
 firstLine  = takeWhile (/= '\n')
