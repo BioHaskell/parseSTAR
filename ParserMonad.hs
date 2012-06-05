@@ -55,7 +55,7 @@ instance Monad Parser where
   fail   = parseFail
 
 type STARKey    = String
-data STARValue  = VText String | VList [STARDict]
+data STARValue  = VText String | VList STARDict
   deriving (Show,Eq)
 type STARDict   = [(STARKey, STARValue)]
 
