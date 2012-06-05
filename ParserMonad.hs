@@ -1,26 +1,35 @@
 module ParserMonad(Parser(..), ParseResult(..), ParserState(..),
+                   parseReturn, parseFail, parseThen,
                    getPos, getInput, setInput,
-                   getToken,
-                   STARKey(..), STARValue(..), STARDict(..)) where
+                   getToken, initState, extractPos, extractInput,
+                   STARKey(..), STARValue(..), STARDict(..),
+                  ) where
 
 import Tokens
 
 data ParseResult a = ParseSuccess a
-                   | ParseFail    AlexPosn String
+                   | ParseFail    String
   deriving (Show,Eq)
 
 data ParserState = ParserState { curInput :: AlexInput,
                                  saved    :: [(STARKey, STARValue)]
                                }
 
+initState input = ParserState (alexStartPos, '\n', [], input) []
+
 newtype Parser a = Parser { unParser :: ParserState -> (ParserState, ParseResult a) }
 
 
 parseFail s = do p <- getPos
-                 Parser (\st -> (st, ParseFail p s))
+                 Parser (\st -> (st, ParseFail s))
 
-getPos = do (p, _, _, _) <- getInput
-            return p
+extractInput (ParserState ci s) = ci
+
+extractPos :: AlexInput -> AlexPosn
+extractPos (p, _, _, _) = p
+
+getPos = do i <- getInput
+            return $ extractPos i
 
 getInput   = Parser (\pst -> case pst of
                                ParserState inp sav -> (ParserState inp sav, ParseSuccess inp))
@@ -31,8 +40,8 @@ setInput i = Parser (\pst -> case pst of
 
 parseThen :: Parser a -> (a -> Parser b) -> Parser b
 (Parser a) `parseThen` pb = Parser (\st -> case a st of
-                                             (st', ParseFail    l s) -> (st', ParseFail l s)
-                                             (st', ParseSuccess   a) -> unParser (pb a) st')
+                                             (st', ParseFail    s) -> (st', ParseFail s)
+                                             (st', ParseSuccess a) -> unParser (pb a) st')
 
 
 parseReturn :: a -> Parser a
@@ -52,14 +61,16 @@ type STARDict   = [(STARKey, STARValue)]
 
 globalSTARKey = ""
 
-getToken = do i <- getInput
-              case alexScan i 0 of
-                AlexEOF              -> do p <- getPos
-                                           return $ EOF p
-                AlexError i          -> parseFail "Lexical error"
-                AlexSkip  i' len     -> do setInput i'
-                                           getToken
-                AlexToken i' len act -> do setInput i'
-                                           let (p, _, _, s) = i
-                                           return $ act p (take len s)
+getToken :: (Token -> Parser a) -> Parser a
+getToken cont = do i <- getInput
+                   case alexScan i 0 of
+                     AlexEOF              -> do p <- getPos
+                                                cont $ EOF p
+                     AlexError i          -> parseFail "Lexical error"
+                     AlexSkip  i' len     -> do setInput i'
+                                                getToken cont
+                     AlexToken i' len act -> do setInput i'
+                                                let (p, _, _, s) = i
+                                                    tok          = act p (take len s)
+                                                cont tok
 

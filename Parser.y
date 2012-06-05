@@ -1,5 +1,6 @@
 {
-module Parser (main) where
+module Main(main) where
+--module Parser (main) where
 
 import Tokens
 import ParserMonad
@@ -10,19 +11,20 @@ import ParserMonad
 %name     parseSTAR valueListEntry
 %tokentype { Token }
 %monad     { Parser }
-%lexer     { getToken } { AlexEOF }
+%lexer     { getToken } { EOF p }
+%error     { parseError }
 
 %token
-    Name     { Name }
-    Text     { Text }
-    Save     { Save }
-    Endsave  { EndSave }
-    Loop     { Loop }
-    EndLoop  { EndLoop }
-    Data     { Data }
-    Global   { Global }
-    Ref      { Ref }
---  err      { Err }
+    Name     { Name    p n }
+    Text     { Text    p t }
+    Save     { Save    p s }
+    Endsave  { EndSave p   }
+    Loop     { Loop    p   }
+    EndLoop  { EndLoop p   }
+    Data     { Data    p d }
+    Global   { Global  p   }
+    Ref      { Ref     p n }
+--  err      { Err         }
 %%
 
 --list(a) : a list(a) { $1:$2 }
@@ -74,39 +76,10 @@ valueListEntry : Text    { case $1 of Text _ a -> SText a }
 
 {
 
--- TODO: split parser monad?
-data ParseResult a = ParseSuccess AlexPosn a
-                   | ParseFail    AlexPosn String
-  deriving (Show,Eq)
+deref x = "$" ++ x -- TODO: use attribute grammar?
 
-newtype Parser a = Parser (String -> AlexPosn -> ParseResult a)
+parseError t = parseFail $ "parse error at token " ++ show t
 
-getPos = Parser (\s p -> ParseSuccess p p)
-
-deref x = "$" ++ x -- TODO: use attribute grammar!
-
-parseThen :: Parser a -> (a -> Parser b) -> Parser b
-(Parser a) `parseThen` pb = Parser (\s l -> case a s l of
-                                      ParseFail    l s@pfail -> ParseFail l s
-                                      ParseSuccess l a       -> case pb a of
-                                                                  Parser f -> f s l)
-
-parseFail s = Parser (\_ p -> ParseFail p s)
-
-parseReturn :: a -> Parser a
-parseReturn a = Parser (\s l -> ParseSuccess l a)
-
-instance Monad Parser where
-  (>>=)  = parseThen
-  return = parseReturn
-  fail   = parseFail
-
-happyError = parseFail "Happy Error!!!"
-
-type STARKey    = String
-data STARValue  = VText String | VList [STARDict]
-  deriving (Show,Eq)
-type STARDict   = [(STARKey, STARValue)]
 type STARBlock  = (STARKey, STARDict)
 data STARType   = TSimple  STARKey
                 | TComplex [STARType]
@@ -115,14 +88,18 @@ data STARStruct = SText String
                 | SStop
   deriving (Show,Eq)
 
+undefGetToken = undefined
+
 globalSTARKey = ""
 
 --runParse :: String -> Either String [STARBlock]
-runParse input = case parseSTAR' input startLoc of
-                   ParseFail    l s -> Left $ "Parse error " ++ s ++ " at " ++ show l
-                   ParseSuccess l b -> Right b
+runParse input = case parseSTAR' (initState input) of
+                   (st, ParseFail s) -> let AlexPn _ l c = extractPos . extractInput $ st
+                                        in  Left $ ("Parse error " ++ s ++
+                                                    " at line " ++ show l ++
+                                                    " column " ++ show c)
+                   (_ , ParseSuccess b) -> Right b
   where Parser parseSTAR' = parseSTAR
-        startLoc = AlexPn 0 0 0
 
 main = do r <- getContents
           print $ runParse r
