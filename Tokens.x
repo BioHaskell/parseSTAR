@@ -1,7 +1,9 @@
 {
-module Tokens (Token(..), alexScan, alexScanTokens,
+module Tokens (Token(..),
+               tokenValue, tokenPosition,
+               alexScan, alexScanTokens,
                AlexPosn(..), AlexReturn(..), AlexInput(..),
-               alexStartPos,
+               alexStartPos
               ) where
 -- Question: case insensitive?
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
@@ -82,6 +84,28 @@ data Token =
         EOF     AlexPosn         |
         Err     String AlexPosn String
   deriving (Eq,Show)
+
+tokenPosition (Name    p s) = p
+tokenPosition (Text    p s) = p
+tokenPosition (White   p  ) = p
+tokenPosition (Comment p s) = p
+tokenPosition (Save    p s) = p
+tokenPosition (EndSave p  ) = p
+tokenPosition (Loop    p  ) = p
+tokenPosition (EndLoop p  ) = p
+tokenPosition (Data    p s) = p
+tokenPosition (Global  p  ) = p
+tokenPosition (Ref     p s) = p
+tokenPosition (EOF     p  ) = p
+tokenPosition (Err   s p r) = p
+
+tokenValue (Name    p s) = s
+tokenValue (Text    p s) = s
+tokenValue (Comment p s) = s
+tokenValue (Save    p s) = s
+tokenValue (Data    p s) = s
+tokenValue (Ref     p s) = s
+tokenValue _             = error "Wrong token"
 
 firstLine  = takeWhile (/= '\n')
 --firstLines s = intersperse "\n" . take 2 . splitWith '\n' $ s

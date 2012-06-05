@@ -4,14 +4,15 @@ module Main(main) where
 
 import Tokens
 import ParserMonad
+import Control.Monad(liftM2)
 
 }
 
 --%name     parseSTAR star
 %name     parseSTAR valueListEntry
 %tokentype { Token }
-%monad     { Parser }
-%lexer     { getToken } { EOF p }
+%monad     { Parser     } { parseThen } { parseReturn }
+%lexer     { getToken   } { EOF p }
 %error     { parseError }
 
 %token
@@ -27,56 +28,56 @@ import ParserMonad
 --  err      { Err         }
 %%
 
---list(a) : a list(a) { $1:$2 }
---        |           { []    }
+list(a)  : a list(a) { $1:$2 }
+         |           { []    }
 
---list1(a) : a list(a) { $1:$2 }
+list1(a) : a list(a) { $1:$2 }
 
---star :: { STARDict }
---star : list(block) { return $1 }
---
---block :: { (STARKey, STARDict) }
---block : blockHeader blockContents { return $ ($1, VList $2) }
---
---blockHeader :: { STARKey }
---blockHeader : Global { return globalSTARKey }
---	    | Data   { return $1            }
---
---blockContents :: { STARDict }
---blockContents :  list(item) { return $ $1 }
---
---item :: { (STARKey, STARValue) }
---item : Name entry { return ($1, $2) }
---
---entry :: { STARValue }
---entry : Text                            { return           $1 }
---      | Ref                             { return . deref $ $1 }
---      | topLoop                         { return           $1 }
---
---topLoop :: { [STARValue] }
---topLoop : Loop nameList valueList { error "Unimplemented!" } 
---topLoop : loop                    { error "Unimplemented!" } 
---
---loop :: { [STARType] }
---loop : Loop nameList EndLoop { error "Unimplemented!" } 
---
---nameList :: { STARType }
---nameList : list1(nameListEntry) { return $1 }
---
---nameListEntry :: { STARType }
---nameListEntry : Name { return $ TSimple  $1 }
---	      | loop { return $ TComplex $1 }
---
---valueList :: { [STARStruct] }
---valueList : list1(valueListEntry) { return $1 }
+star :: { STARDict }
+star : list(block) { $1 }
+
+block :: { (STARKey, STARDict) }
+block : blockHeader blockContents { ($1, $2) }
+
+blockHeader :: { STARKey }
+blockHeader : Global { globalSTARKey }
+	    | Data   { tokenValue $1 }
+
+blockContents :: { STARDict }
+blockContents :  list(item) { $1 }
+
+item :: { (STARKey, STARValue) }
+item : Name entry { (tokenValue $1, $2) }
+
+entry :: { STARValue }
+entry : Text                            {  VText $ tokenValue $1 }
+      | Ref                             {% deref $ tokenValue $1 }
+      | topLoop                         {  VList              $1 }
+
+topLoop :: { [STARDict] }
+topLoop : Loop nameList valueList { error "Unimplemented!" } 
+topLoop : loop                    { error "Unimplemented!" } 
+
+loop :: { [STARType] }
+loop : Loop nameList EndLoop { $2 } 
+
+nameList :: { [STARType] }
+nameList : list1(nameListEntry) { $1 }
+
+nameListEntry :: { STARType }
+nameListEntry : Name { TSimple  $ tokenValue $1 }
+	      | loop { TComplex $1 }
+
+valueList :: { [STARStruct] }
+valueList : list1(valueListEntry) { $1 }
 
 valueListEntry :: { STARStruct }
-valueListEntry : Text    { case $1 of Text _ a -> SText a }
-               | EndLoop { SStop    }
+valueListEntry : Text    { SText $ tokenValue $1 }
+               | EndLoop { SStop                 }
 
 {
 
-deref x = "$" ++ x -- TODO: use attribute grammar?
+deref x = return . VText $ "$" ++ x -- TODO: use attribute grammar?
 
 parseError t = parseFail $ "parse error at token " ++ show t
 
@@ -90,6 +91,7 @@ data STARStruct = SText String
 
 undefGetToken = undefined
 
+globalSTARKey :: STARKey
 globalSTARKey = ""
 
 --runParse :: String -> Either String [STARBlock]
