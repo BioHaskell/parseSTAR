@@ -46,12 +46,14 @@ blockContents :: { STARDict }
 blockContents :  list(item) { $1 }
 
 item :: { (STARKey, STARValue) }
-item : Name entry { (tokenValue $1, $2) }
+item : Name entry                 { (tokenValue $1,       $2) }
+     | Save blockContents Endsave {% savedEntry (tokenValue $1, VList $2) }
+     | loop                       { }
 
 entry :: { STARValue }
 entry : Text                            {  VText $ tokenValue $1 }
       | Ref                             {% deref $ tokenValue $1 }
-      | topLoop                         {  VList              $1 }
+--      | topLoop                         {  VList              $1 }
 
 topLoop :: { STARDict }
 topLoop : Loop nameList valueList { matchTypesValues $2 $3 }
@@ -71,7 +73,7 @@ valueList :: { [STARStruct] }
 valueList : list1(valueListEntry) { $1 }
 
 valueListEntry :: { STARStruct }
-valueListEntry : Text    {% liftM (\p -> SText p $ tokenValue $1) getPos } 
+valueListEntry : Text    {% liftM (\p -> SText p $ tokenValue $1) getPos }
                | EndLoop {% liftM SStop getPos                           }
 
 {
@@ -92,6 +94,12 @@ mkSTARDict = id
 
 matchTypesValues :: [STARType] -> [STARStruct] -> STARDict
 matchTypesValues = undefined
+
+savedEntry :: (STARKey, STARValue) -> Parser (STARKey, STARValue)
+-- Add error checking after save!
+savedEntry e = Parser pp
+  where
+    pp (ParserState p saved) = (ParserState p (e:saved), ParseSuccess e)
 
 globalSTARKey :: STARKey
 globalSTARKey = ""
