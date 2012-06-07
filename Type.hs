@@ -29,6 +29,6 @@ data STAREntry = Entry { key          :: String,
                        }
   deriving (Show, Eq)
 
-newtype STARDict = STARDict { unSTARDict :: [(String, [STAREntry])] }
+newtype STARDict = STARDict { unSTARDict :: [(String, STAREntry)] }
   deriving (Show, Eq)
 

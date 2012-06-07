@@ -2,7 +2,7 @@ module ParserMonad(Parser(..), ParseResult(..), ParserState(..),
                    parseReturn, parseFail, parseThen,
                    getPos, getInput, setInput,
                    getToken, initState, extractPos, extractInput,
-                   STARKey(..), STARValue(..), STARDict(..),
+                   STARKey(..), STAREntry(..), STARDict(..),
                    savedEntry, deref
                   ) where
 
@@ -43,7 +43,7 @@ savedEntry :: STARKey -> [STAREntry] -> Parser STAREntry
 -- Add error checking after save!
 savedEntry k es = Parser pp
   where
-    pp (ParserState p saved) = (ParserState p $ STARDict (f:unSTARDict saved),
+    pp (ParserState p saved) = (ParserState p $ STARDict ((k, f):unSTARDict saved),
                                 ParseSuccess f)
     f = Frame k es
 
