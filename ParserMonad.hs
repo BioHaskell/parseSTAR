@@ -6,13 +6,14 @@ module ParserMonad(Parser(..), ParseResult(..), ParserState(..),
                   ) where
 
 import Tokens
+import Type
 
 data ParseResult a = ParseSuccess a
                    | ParseFail    String
   deriving (Show,Eq)
 
 data ParserState = ParserState { curInput :: AlexInput,
-                                 saved    :: [(STARKey, STARValue)]
+                                 saved    :: STARDict
                                }
 
 initState input = ParserState (alexStartPos, '\n', [], input) []
@@ -54,10 +55,7 @@ instance Monad Parser where
   return = parseReturn
   fail   = parseFail
 
-type STARKey    = String
-data STARValue  = VText String | VList STARDict
-  deriving (Show,Eq)
-type STARDict   = [(STARKey, STARValue)]
+--type STARDict   = [(STARKey, STARValue)]
 
 globalSTARKey = ""
 

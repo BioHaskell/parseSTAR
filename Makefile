@@ -1,6 +1,5 @@
 GHCFLAGS=
 ALEXFLAGS=
-#ALEXFLAGS=--info=Tokens.info --debug
 HAPPYFLAGS=--ghc --decode
 
 test: test_parser
@@ -17,6 +16,13 @@ Parser: Parser.hs Tokens.hs Tokens.hi ParserMonad.hs ParserMonad.hi
 
 TestTokens: TestTokens.hs Tokens.hi
 	ghc $(GHCFLAGS) $<
+
+Tokens.hs: Tokens.x
+
+Parser.hs: Parser.y
+
+ParserMonad.o ParserMonad.hi: ParserMonad.hs Type.hi
+
 
 %.hs: %.x
 	alex $(ALEXFLAGS) $<

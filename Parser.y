@@ -1,17 +1,18 @@
 {
 module Main(main) where
---module Parser (main) where
 
 import Tokens
 import ParserMonad
 import Control.Monad(liftM, liftM2)
+--import STAR.Type
+import Type
 
 }
 
-%name     parseSTAR star
-%tokentype { Token }
+%name      parseSTAR star
+%tokentype { Token      }
 %monad     { Parser     } { parseThen } { parseReturn }
-%lexer     { getToken   } { EOF }
+%lexer     { getToken   } { EOF       }
 %error     { parseError }
 
 %token
@@ -35,32 +36,34 @@ list1(a) : a list(a) { $1:$2 }
 star :: { STARDict }
 star : list1(block) { mkSTARDict $1 }
 
-block :: { (STARKey, STARValue) }
-block : blockHeader blockContents { ($1, VList $2) }
+block :: { (Maybe STARKey, STARDict) }
+block : globalBlock { $1 }
+      | dataBlock   { $1 }
 
-blockHeader :: { STARKey }
-blockHeader : Global { globalSTARKey }
-	    | Data   { tokenValue $1 }
+globalBlock :: { STARBlock }
+globalBlock : Global list1(flatData) { Global $2 }
 
-blockContents :: { STARDict }
-blockContents :  list(item) { $1 }
+dataBlock :: { STARBlock }
+dataBlock : Data list1(entry) { Data (Just . tokenValue $ $1) $2 }
 
-item :: { (STARKey, STARValue) }
-item : Name entry                 { (tokenValue $1,       $2) }
-     | Save blockContents Endsave {% savedEntry (tokenValue $1, VList $2) }
-     | loop                       { }
+entry :: { STAREntry }
+entry : flatData                  { $1 }
+      | Save list1(entry) Endsave {% undefined } --savedEntry (tokenValue $1, VList $2) }
 
-entry :: { STARValue }
-entry : Text                            {  VText $ tokenValue $1 }
-      | Ref                             {% deref $ tokenValue $1 }
---      | topLoop                         {  VList              $1 }
+-- should there be flatEntry and entry (with ref allowed or not)
+flatData :: { (STARKey, STARValue) }
+flatEntry : Name value { VEntry (tokenValue $1) $2 }
+	  | loop       { VList  $1                 }
+
+value :: { STARValue }
+value : Text {  VText $ tokenValue $1 }
+      | Ref  {% deref $ tokenValue $1 }
 
 topLoop :: { STARDict }
 topLoop : Loop nameList valueList { matchTypesValues $2 $3 }
---topLoop : loop                    { $1 }
 
 loop :: { [STARType] }
-loop : Loop nameList EndLoop { $2 }
+loop : Loop nameList EndLoop    { $2 }
 
 nameList :: { [STARType] }
 nameList : list1(nameListEntry) { $1 }
