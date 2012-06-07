@@ -4,7 +4,7 @@ module Type(
        STARBlock(..),
        STAREntry(..),
        STARDict (..),
-       STARKey,
+       STARKey
 ) where
 
 newtype STAR = STAR [STARBlock]
@@ -29,7 +29,6 @@ data STAREntry = Entry { key          :: String,
                        }
   deriving (Show, Eq)
 
-newtype STARDict = STARDict { unSTARDict :: [(String, String)] }
+newtype STARDict = STARDict { unSTARDict :: [(String, [STAREntry])] }
   deriving (Show, Eq)
-
 

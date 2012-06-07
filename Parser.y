@@ -81,8 +81,6 @@ valueListEntry : Text    {% liftM (\p -> SText p $ tokenValue $1) getPos }
 
 {
 
-deref x = return . VText $ "$" ++ x -- TODO: use attribute grammar?
-
 parseError t = parseFail $ "parse error at token " ++ show t
 
 data STARType   = TSimple  STARKey
@@ -92,27 +90,18 @@ data STARStruct = SText AlexPosn String -- keep position for matchTypesValues er
                 | SStop AlexPosn
   deriving (Show,Eq)
 
-mkSTARDict :: [(STARKey, STARValue)] -> STARDict
-mkSTARDict = id	   
-
 matchTypesValues :: [STARType] -> [STARStruct] -> STARDict
 matchTypesValues = undefined
-
-savedEntry :: (STARKey, STARValue) -> Parser (STARKey, STARValue)
--- Add error checking after save!
-savedEntry e = Parser pp
-  where
-    pp (ParserState p saved) = (ParserState p (e:saved), ParseSuccess e)
 
 globalSTARKey :: STARKey
 globalSTARKey = ""
 
 runParse :: String -> Either String STARDict
 runParse input = case parseSTAR' (initState input) of
-                   (st, ParseFail s) -> let AlexPn _ l c = extractPos . extractInput $ st
-                                        in  Left $ ("Parse error " ++ s ++
-                                                    " at line " ++ show l ++
-                                                    " column " ++ show c)
+                   (st, ParseFail    s) -> let AlexPn _ l c = extractPos . extractInput $ st
+                                             in  Left $ ("Parse error " ++ s ++
+                                                         " at line " ++ show l ++
+                                                         " column " ++ show c)
                    (_ , ParseSuccess b) -> Right b
   where Parser parseSTAR' = parseSTAR
 
