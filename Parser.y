@@ -33,18 +33,12 @@ list(a)  : a list(a) { $1:$2 }
 
 list1(a) : a list(a) { $1:$2 }
 
-star :: { STARDict }
-star : list1(block) { STARDict $1 }
+star :: { [Type.STARBlock] }
+star : list1(block) { $1 }
 
-block :: { (Maybe STARKey, STARDict) }
-block : globalBlock { $1 }
-      | dataBlock   { $1 }
-
-globalBlock :: { Type.STARBlock }
-globalBlock : Global list1(flatData) { Type.Global $2 }
-
-dataBlock :: { Type.STARBlock }
-dataBlock : Data list1(entry) { Type.Data (Tokens.tokenValue $1) $2 }
+block :: { Type.STARBlock }
+block : Global list1(flatData) { Type.Global $2 }
+      | Data   list1(entry   ) { Type.Data (Tokens.tokenValue $1) $2 }
 
 entry :: { Type.STAREntry }
 entry : flatData                  { $1 }
@@ -52,32 +46,39 @@ entry : flatData                  { $1 }
 
 -- should there be flatEntry and entry (with ref allowed or not)
 flatData :: { Type.STAREntry }
-flatEntry : Name value { Entry (Tokens.tokenValue $1) $2 }
-	  | loop       { Loop $1                  }
+flatEntry : item    { $1 }
+	  | topLoop { Loop $1                         }
 
-value :: { Type.STAREntry }
-value : Text {  Tokens.tokenValue $1 }
-      | Ref  {% deref $ Tokens.tokenValue $1 }
+item :: { Type.STAREntry }
+item : Name value { $2 (Tokens.tokenValue $1) }
 
-topLoop :: { Type.STARDict }
-topLoop : Loop nameList valueList { matchTypesValues $2 $3 }
+value :: { Type.STARKey -> Type.STAREntry }
+value : Text { \k -> Entry k (Tokens.tokenValue $1) }
+      | Ref  {% deref (Tokens.tokenValue $1) >>= \f -> case f of Frame _ es -> return (\k -> Frame k es) }
 
-loop :: { [STARType] }
-loop : Loop nameList EndLoop    { $2 }
+topLoop :: { [Type.STARDict] }
+topLoop : Loop list1(structure) list1(valueListEntry) EndLoop { matchTypesValues $2 $3 }
 
-nameList :: { [STARType] }
-nameList : list1(nameListEntry) { $1 }
+structureList :: { [STARType] }
+structureList : list1(structure)          { $1 }
 
-nameListEntry :: { STARType }
-nameListEntry : Name { TSimple  $ Tokens.tokenValue $1 }
-	      | loop { TComplex $1 }
+structure :: { STARType }
+structure : Name                          { TSimple  (Tokens.tokenValue $1) }
+	  | Loop list1(structure) EndLoop { TComplex $2                     }
+
+--nameList :: { [STARType] }
+--nameList : list1(nameListEntry) { $1 }
+
+--nameListEntry :: { STARType }
+--nameListEntry : Name { TSimple  $ Tokens.tokenValue $1 }
+--              | loop { TComplex $1 }
 
 valueList :: { [STARStruct] }
 valueList : list1(valueListEntry) { $1 }
 
 valueListEntry :: { STARStruct }
 valueListEntry : Text    {% liftM (\p -> SText p $ Tokens.tokenValue $1) getPos }
-               | EndLoop {% liftM SStop getPos                           }
+               | EndLoop {% liftM SStop getPos                                  }
 
 {
 
@@ -90,13 +91,13 @@ data STARStruct = SText Tokens.AlexPosn String -- keep position for matchTypesVa
                 | SStop Tokens.AlexPosn
   deriving (Show,Eq)
 
-matchTypesValues :: [STARType] -> [STARStruct] -> STARDict
+matchTypesValues :: [STARType] -> [STARStruct] -> [STARDict]
 matchTypesValues = undefined
 
 globalSTARKey :: STARKey
 globalSTARKey = ""
 
-runParse :: String -> Either String STARDict
+runParse :: String -> Either String [Type.STARBlock]
 runParse input = case parseSTAR' (initState input) of
                    (st, ParseFail    s) -> let Tokens.AlexPn _ l c = extractPos . extractInput $ st
                                              in  Left $ ("Parse error " ++ s ++
