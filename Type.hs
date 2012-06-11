@@ -3,7 +3,6 @@ module Type(
        STAR     (..),
        STARBlock(..),
        STAREntry(..),
-       STARDict (..),
        STARKey
 ) where
 
@@ -25,10 +24,8 @@ data STAREntry = Entry { key          :: String,
                | Frame { key          :: String,
                          frameEntries :: [STAREntry]
                        }
-               | Loop  { table        :: [STARDict]
+               | Loop  { table        :: [STAREntry]
                        }
   deriving (Show, Eq)
 
-newtype STARDict = STARDict { unSTARDict :: [(String, STAREntry)] }
-  deriving (Show, Eq)
 

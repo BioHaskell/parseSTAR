@@ -1,20 +1,29 @@
+#GHCFLAGS=-debug
+#GHCFLAGS=-prof -auto-all
 GHCFLAGS=
+RTSFLAGS=-xc
 ALEXFLAGS=
 HAPPYFLAGS=--ghc --decode
 
-test: test_parser
+test: TestParserMonad
+	./TestParserMonad
+
+test2: test_parser
 #test: test_tokens test_parser
 
 test_tokens: TestTokens
-	./TestTokens < test.str
+	./TestTokens ${RTSFLAGS} < test.str
 
 test_parser: Parser
-	./Parser < test.str
+	./Parser +RTS ${RTSFLAGS} < test.str
 
 Parser: Parser.hs Tokens.hs Tokens.hi ParserMonad.hs ParserMonad.hi
 	ghc $(GHCFLAGS) $<
 
 TestTokens: TestTokens.hs Tokens.hi
+	ghc $(GHCFLAGS) $<
+
+TestParserMonad: TestParserMonad.hs Tokens.hi Tokens.o
 	ghc $(GHCFLAGS) $<
 
 Tokens.hs: Tokens.x

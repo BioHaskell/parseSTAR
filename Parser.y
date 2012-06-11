@@ -47,7 +47,7 @@ entry : flatData                  { $1 }
 -- should there be flatEntry and entry (with ref allowed or not)
 flatData :: { Type.STAREntry }
 flatEntry : item    { $1 }
-	  | topLoop { Loop $1                         }
+	  | topLoop { $1 }
 
 item :: { Type.STAREntry }
 item : Name value { $2 (Tokens.tokenValue $1) }
@@ -56,7 +56,7 @@ value :: { Type.STARKey -> Type.STAREntry }
 value : Text { \k -> Entry k (Tokens.tokenValue $1) }
       | Ref  {% deref (Tokens.tokenValue $1) >>= \f -> case f of Frame _ es -> return (\k -> Frame k es) }
 
-topLoop :: { [Type.STARDict] }
+topLoop :: { Type.STAREntry }
 topLoop : Loop list1(structure) list1(valueListEntry) { matchTypesValues $2 $3 }
 
 structureList :: { [STARType] }
@@ -81,25 +81,6 @@ valueListEntry : Text    {% liftM (\p -> SText p $ Tokens.tokenValue $1) getPos 
                | EndLoop {% liftM SStop getPos                                  }
 
 {
-
-parseError t = parseFail $ "parse error at token " ++ show t
-
-data STARType   = TSimple  STARKey
-                | TComplex [STARType]
-  deriving (Show,Eq)
-data STARStruct = SText Tokens.AlexPosn String -- keep position for matchTypesValues error reporting!
-                | SRef  Tokens.AlexPosn String -- TODO: implement!!!
-                | SStop Tokens.AlexPosn
-  deriving (Show,Eq)
-
-matchTypesValues :: [STARType] -> [STARStruct] -> [STARDict]
-matchTypesValues ts ss = Loop r
-  where ([], r) = match' ts ss
-        match'  ts               (SStop:ss)	= (ss, [])
-        match'' []               ss		= match' ts ss
-        match'' (TSimple  t :ts) (SText p s:ss) = let (ss,   r ) = match'           ts ss  in (ss , Entry t s:r)
-        match'' (TComplex tc:ts) ss		= let (ss',  lr) = matchTypesValues tc ss
-						      (ss'', r ) = match''          ts ss' in (ss', lr:r)
 
 globalSTARKey :: STARKey
 globalSTARKey = ""
