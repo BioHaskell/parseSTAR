@@ -78,6 +78,7 @@ valueList : list1(valueListEntry) { $1 }
 
 valueListEntry :: { STARStruct }
 valueListEntry : Text    {% liftM (\p -> SText p $ Tokens.tokenValue $1) getPos }
+               | Ref     {% liftM (\p -> SRef  p $ Tokens.tokenValue $1) getPos }
                | EndLoop {% liftM SStop getPos                                  }
 
 {

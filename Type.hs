@@ -21,6 +21,9 @@ type STARKey = String
 data STAREntry = Entry { key          :: String,
                          value        :: String
                        }
+               | Ref   { key          :: String,
+                         value        :: String
+                       }
                | Frame { key          :: String,
                          frameEntries :: [STAREntry]
                        }

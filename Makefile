@@ -5,10 +5,11 @@ GHCFLAGS=
 ALEXFLAGS=
 HAPPYFLAGS=--ghc --decode
 
+test2: test_parser
+
 test: TestParserMonad
 	./TestParserMonad
 
-test2: test_parser
 #test: test_tokens test_parser
 
 test_tokens: TestTokens
