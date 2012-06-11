@@ -1,7 +1,7 @@
 #GHCFLAGS=-debug
 #GHCFLAGS=-prof -auto-all
 GHCFLAGS=
-RTSFLAGS=-xc
+--RTSFLAGS=-xc
 ALEXFLAGS=
 HAPPYFLAGS=--ghc --decode
 
@@ -23,7 +23,7 @@ Parser: Parser.hs Tokens.hs Tokens.hi ParserMonad.hs ParserMonad.hi
 TestTokens: TestTokens.hs Tokens.hi
 	ghc $(GHCFLAGS) $<
 
-TestParserMonad: TestParserMonad.hs Tokens.hi Tokens.o
+TestParserMonad: TestParserMonad.hs ParserMonad.hi ParserMonad.o Tokens.hi Tokens.o
 	ghc $(GHCFLAGS) $<
 
 Tokens.hs: Tokens.x

@@ -112,14 +112,16 @@ matchTypesValues ts ss = r
 
 matchTypesValues' :: [STARType] -> [STARStruct] -> ([STARStruct], STAREntry)
 matchTypesValues' ts ss = (ss', Type.Loop r)
-  where ([] , r ) = match' ts ss
-        (ss', r1) = matchTypesValues' ts ss
+  where (ss', r ) = match' ts ss
         match' :: [STARType] -> [STARStruct] -> ([STARStruct], [STAREntry])
-        match' []               (SStop p:ss)   = (ss, [])
+        match' []               (SStop p  :ss) = (ss, [])
         match' []               ss             = match' ts ss
         match' (TSimple  t :ts) (SText p s:ss) = let (ss',           r) = match'    ts ss
                                                  in  (ss', Entry t s:r)
+        match' (TComplex tc:ts) []             = error $ "Cannot find any more values to match " ++ show (TComplex tc)
         match' (TComplex tc:ts) ss             = let (ss' , lr  ) = matchTypesValues' tc ss
                                                      (ss'',    r) = match'            ts ss'
                                                  in  (ss'', lr:r)
+        match' (t:_)            (s:ss)         = error ("Can't match declared " ++ show t ++
+                                                        " and actual " ++ show s)
 
