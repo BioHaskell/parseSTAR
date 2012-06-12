@@ -3,8 +3,14 @@ module Type(
        STAR     (..),
        STARBlock(..),
        STAREntry(..),
-       STARKey
+       STARKey,
+       String
 ) where
+
+import Data.ByteString.Lazy.Char8 as BSC
+import Prelude hiding(String)
+
+type String = BSC.ByteString
 
 newtype STAR = STAR [STARBlock]
   deriving (Show, Eq)

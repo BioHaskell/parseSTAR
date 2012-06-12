@@ -1,6 +1,9 @@
 .*.sw[op]
 *.hi
 *.o
+*.prof
+*.hp
+*.svg
 Tokens.hs
 Parser.hs
 TestTokens

@@ -1,4 +1,5 @@
 {
+{-# LANGUAGE OverloadedStrings #-}
 module Main(main) where
 
 import qualified Tokens
@@ -6,6 +7,8 @@ import qualified Tokens
 import ParserMonad
 import Control.Monad(liftM, liftM2)
 import qualified Type
+import Prelude hiding (String, getContents, drop, take, (++))
+import Data.ByteString.Lazy.Char8 as BSC
 
 }
 
@@ -84,15 +87,17 @@ valueListEntry : Text    {% liftM (\p -> SText p $ Tokens.tokenValue $1) getPos 
 
 {
 
+(++) = BSC.append
+
 globalSTARKey :: STARKey
 globalSTARKey = ""
 
-runParse :: String -> Either String [Type.STARBlock]
+runParse :: BSC.ByteString -> Either BSC.ByteString [Type.STARBlock]
 runParse input = case parseSTAR' (initState input) of
                    (st, ParseFail    s) -> let Tokens.AlexPn _ l c = extractPos . extractInput $ st
-                                             in  Left $ ("Parse error " ++ s ++
-                                                         " at line " ++ show l ++
-                                                         " column " ++ show c)
+                                             in  Left ("Parse error " ++ s ++
+                                                       " at line " ++ BSC.pack (show l) ++
+                                                       " column " ++ BSC.pack (show c))
                    (_ , ParseSuccess b) -> Right b
   where Parser parseSTAR' = parseSTAR
 
