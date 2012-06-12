@@ -54,7 +54,8 @@ item : Name value { $2 (Tokens.tokenValue $1) }
 
 value :: { Type.STARKey -> Type.STAREntry }
 value : Text { \k -> Entry k (Tokens.tokenValue $1) }
-      | Ref  {% deref (Tokens.tokenValue $1) >>= \f -> case f of Frame _ es -> return (\k -> Frame k es) }
+      | Ref  { \k -> Ref   k (Tokens.tokenValue $1) }
+--{% deref (Tokens.tokenValue $1) >>= \f -> case f of Frame _ es -> return (\k -> Frame k es) }
 
 topLoop :: { Type.STAREntry }
 topLoop : Loop list1(structure) list1(valueListEntry) { matchTypesValues $2 $3 }
