@@ -9,6 +9,8 @@ module ParserMonad(Parser(..), ParseResult(..), ParserState(..),
                    savedEntry, deref
                   ) where
 
+import Control.Monad.StateT
+
 import Prelude hiding (String)
 import Tokens
 import Type

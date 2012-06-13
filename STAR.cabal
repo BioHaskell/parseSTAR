@@ -1,0 +1,1 @@
+Depends: bytestring-show, mtl, base, alex, happy, binary

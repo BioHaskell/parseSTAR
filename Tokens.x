@@ -12,6 +12,14 @@ import Type(String)
 import Data.ByteString.Lazy.Char8 as BSC
 import Data.ByteString.Lazy.Char8(take,drop)
 
+--import Text.Show.ByteString
+import Control.Monad.State
+import Control.Monad.Error
+import Control.Monad.Trans
+--import Data.ByteString.Char8 as BSC
+import Data.Int
+import Data.Binary.Put
+import Data.Function
 
 -- Question: case insensitive?
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
@@ -55,6 +63,45 @@ tokens :-
 
 {
 
+data ParseError = ParseError Int Int String
+
+{-
+instance Show ParseError
+  where
+    showsPrec d (ParseError l c s) = (showString "Error at line " .
+                                      showsPrec  l .
+                                      showString " column " .
+                                      showsPrec  c .
+                                      showString ":" .
+                                      showString s)
+-}
+
+newtype ParserT m a = ParserT (ErrorT ParseError (StateT AlexInput m) a)
+
+parseError msg = ParserT (do (AlexPn l c _, _, _) <- get
+                             throwError $ ParseError l c msg)
+
+unparserT (ParserT f) = f
+
+a `parseThen` b = ParserT (do x <- unparserT a
+                              unparserT $ b x)
+                                        
+
+parseReturn a = ParserT (return a)
+
+instance Error ParseError
+  where
+    strMsg msg = ParseError (-1) (-1) (BSC.pack msg)
+
+instance MonadTrans ParserT
+  where
+    lift f = ParserT (lift . lift $ f)
+
+instance (Monad m)=>Monad (ParserT m)
+  where
+    (>>=)  = parseThen
+    return = parseReturn
+    fail   = parseError . BSC.pack
 chop :: String -> String -> String
 chop s = chopFront s . chopTail s
 
