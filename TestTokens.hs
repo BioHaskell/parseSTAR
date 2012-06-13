@@ -3,7 +3,7 @@ module Main(main) where
 import Data.ByteString.Lazy.Char8 as BS
 import Tokens
 
-myScanTokens str = go (alexStartPos,'\n',str)
+myScanTokens str = go (initState str)
   where go inp@(pos,_,str) =
           case alexScan inp 0 of
                 AlexEOF -> return []
@@ -11,9 +11,7 @@ myScanTokens str = go (alexStartPos,'\n',str)
                 AlexSkip  inp' len     -> go inp'
                 AlexToken inp' len act -> do print $ act pos (BS.take (fromIntegral len) str) 
                                              go inp'
-
 -- Test
 main = do
   s <- BS.getContents
-  let startInput = (AlexPn 0 0 0, '\n', s)
   myScanTokens s

@@ -1,10 +1,10 @@
 {
 {-# LANGUAGE OverloadedStrings #-}
-module Tokens (Token(..),
+module Tokens (Token(..), ParserT(..),
                tokenValue,
                alexScan, alexScanTokens,
                AlexPosn(..), AlexReturn(..), AlexInput(..),
-               alexStartPos
+               initState,
               ) where
 
 import Prelude hiding(String, take, drop)
@@ -155,7 +155,7 @@ data Token =
         Global          |
         Ref     String  |
         EOF             |
-        Err     String AlexPosn String
+        Err     String
   deriving (Eq,Show)
 
 tokenValue (Name    s) = s
@@ -165,6 +165,8 @@ tokenValue (Save    s) = s
 tokenValue (Data    s) = s
 tokenValue (Ref     s) = s
 tokenValue _             = error "Wrong token"
+
+initState input = (AlexPn 0 0 0, '\n', input)
 
 firstLine  = BSC.takeWhile (/= '\n')
 --firstLines s = intersperse "\n" . take 2 . splitWith '\n' $ s

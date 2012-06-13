@@ -1,11 +1,11 @@
 {
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, BangPatterns #-}
 module Main(main) where
 
 import qualified Tokens
 
-import ParserMonad
 import Control.Monad(liftM, liftM2)
+import Control.Monad.State
 import qualified Type
 import Prelude hiding (String, getContents, drop, take, (++))
 import Data.ByteString.Lazy.Char8 as BSC
@@ -13,10 +13,10 @@ import Data.ByteString.Lazy.Char8 as BSC
 }
 
 %name      parseSTAR star
-%tokentype { Tokens.Token }
-%monad     { Parser       } { parseThen  } { parseReturn }
-%lexer     { getToken     } { Tokens.EOF }
-%error     { parseError   }
+%tokentype { Tokens.Token     }
+%monad     { Tokens.ParserT m } 
+%lexer     { getToken         } { Tokens.EOF }
+%error     { failToken        }
 
 %token
     Name     { Tokens.Name    _ }
@@ -45,7 +45,7 @@ block : Global list1(flatData) { Type.Global $2 }
 
 entry :: { Type.STAREntry }
 entry : flatData                  { $1 }
-      | Save list1(entry) Endsave {% savedEntry (Tokens.tokenValue $1) $2 }
+      | Save list1(entry) Endsave { Type.Frame (Tokens.tokenValue $1) $2 }
 
 -- should there be flatEntry and entry (with ref allowed or not)
 flatData :: { Type.STAREntry }
@@ -56,9 +56,9 @@ item :: { Type.STAREntry }
 item : Name value { $2 (Tokens.tokenValue $1) }
 
 value :: { Type.STARKey -> Type.STAREntry }
-value : Text { \k -> Entry k (Tokens.tokenValue $1) }
-      | Ref  { \k -> Ref   k (Tokens.tokenValue $1) }
---{% deref (Tokens.tokenValue $1) >>= \f -> case f of Frame _ es -> return (\k -> Frame k es) }
+value : Text { \k -> Type.Entry k (Tokens.tokenValue $1) }
+      | Ref  { \k -> Type.Ref   k (Tokens.tokenValue $1) }
+--{% deref (Tokens.tokenValue $1) >>= \f -> case f of Type.Frame _ es -> return (\k -> Frame k es) }
 
 topLoop :: { Type.STAREntry }
 topLoop : Loop list1(structure) list1(valueListEntry) { matchTypesValues $2 $3 }
@@ -87,11 +87,26 @@ valueListEntry : Text    {% liftM (\p -> SText p $ Tokens.tokenValue $1) getPos 
 
 {
 
+getPos = do (pos, _, _) <- get
+            return pos
+
+getToken :: (Tokens.Token -> Tokens.ParserT m a) -> Tokens.ParserT m a
+getToken cont = do r <- lift (mapStateT getToken' (return ()))
+                   cont r
+
+--getToken' :: ((), Tokens.AlexInput) -> (Tokens.Token, Tokens.AlexInput)
+getToken' ((), ((), alexState)) = case Tokens.alexScan alexState 0 of
+                                    Tokens.AlexEOF                            -> return (Tokens.EOF, alexState)
+                                    Tokens.AlexError i                        -> fail "lexical error" 
+                                    Tokens.AlexSkip  !newAlexState len        -> getToken' ((), ((), newAlexState))
+                                    Tokens.AlexToken !newAlexState toklen act -> let (pos, _, str) = alexState
+                                                                                     tokStr        = BSC.take (fromIntegral toklen) str
+                                                                                     !token        = act pos tokStr
+                                                                                 in  return (token, newAlexState)
+
 (++) = BSC.append
 
-globalSTARKey :: STARKey
-globalSTARKey = ""
-
+{-
 runParse :: BSC.ByteString -> Either BSC.ByteString [Type.STARBlock]
 runParse input = case parseSTAR' (initState input) of
                    (st, ParseFail    s) -> let Tokens.AlexPn _ l c = extractPos . extractInput $ st
@@ -100,9 +115,46 @@ runParse input = case parseSTAR' (initState input) of
                                                        " column " ++ BSC.pack (show c))
                    (_ , ParseSuccess b) -> Right b
   where Parser parseSTAR' = parseSTAR
+-}
 
+data STARType   = TSimple  Type.STARKey
+                | TComplex [STARType]
+  deriving (Show,Eq)
+
+data STARStruct = SText Tokens.AlexPosn Type.String -- keep position for matchTypesValues error reporting!
+                | SRef  Tokens.AlexPosn Type.String -- TODO: implement!!!
+                | SStop Tokens.AlexPosn
+  deriving (Show,Eq)
+
+matchTypesValues  :: [STARType] -> [STARStruct] -> Type.STAREntry
+matchTypesValues ts ss = r
+  where ([], r)        = matchTypesValues' ts ss
+
+matchTypesValues' :: [STARType] -> [STARStruct] -> ([STARStruct], Type.STAREntry)
+matchTypesValues' ts ss = (ss', Type.Loop r)
+  where (ss', r ) = match' ts ss
+        match' :: [STARType] -> [STARStruct] -> ([STARStruct], [Type.STAREntry])
+        match' []               (SStop p  :ss) = (ss, [])
+        match' []               ss             = match' ts ss
+        match' (TSimple  t :ts) (SText p s:ss) = let (ss',                r) = match'    ts ss
+                                                 in  (ss', Type.Entry t s:r)
+        match' (TSimple  t :ts) (SRef  p s:ss) = let (ss',                r) = match'    ts ss
+                                                 in  (ss', Type.Ref   t s:r)
+        match' (TComplex tc:ts) []             = error . Prelude.concat ["Cannot find any more values to match ", show (TComplex tc)]
+        match' (TComplex tc:ts) ss             = let (ss' , lr  ) = matchTypesValues' tc ss
+                                                     (ss'',    r) = match'            ts ss'
+                                                 in  (ss'', lr:r)
+        match' (t:_)            (s:ss)         = error . Prelude.concat ["Can't match declared ",
+                                                                         show t,
+                                                                         " and actual ",
+                                                                         show s]
+
+failToken tok = fail $ Prelude.concat ["parse error on ", show tok]
+
+{-
 main = do r <- getContents
           print $ runParse r
+-}
 
 }
 

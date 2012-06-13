@@ -9,101 +9,14 @@ module ParserMonad(Parser(..), ParseResult(..), ParserState(..),
                    savedEntry, deref
                   ) where
 
-import Control.Monad.StateT
+import Control.Monad.State
 
 import Prelude hiding (String)
 import Tokens
 import Type
 import Data.ByteString.Lazy.Char8 as BSC
 
-data ParseResult a = ParseSuccess !a
-                   | ParseFail    !Type.String
-  deriving (Show,Eq)
-
-data ParserState = ParserState { curInput :: !AlexInput,
-                                 saved    :: [STAREntry]
-                               }
-
-initState :: BSC.ByteString -> ParserState
-initState input = ParserState (alexStartPos, '\n', input) []
-
-newtype Parser a = Parser { unParser :: ParserState -> (ParserState, ParseResult a) }
-
-parseFail :: String -> Parser a
-parseFail s = do p <- getPos
-                 Parser (\st -> (st, ParseFail s))
-
-extractInput (ParserState ci s) = ci
-
-extractPos :: AlexInput -> AlexPosn
-extractPos (p, _, _) = p
-
-getPos = do i <- getInput
-            return $ extractPos i
-
-getInput   = Parser (\pst -> case pst of
-                               ParserState inp sav -> (ParserState inp sav, ParseSuccess inp))
-setInput i = Parser (\pst -> case pst of
-                               ParserState inp sav -> (ParserState i   sav, ParseSuccess () ))
-
-savedEntry :: STARKey -> [STAREntry] -> Parser STAREntry
--- Add error checking after save!
-savedEntry k es = Parser pp
-  where
-    pp (ParserState p saved) = (ParserState p (f:saved),
-                                ParseSuccess f)
-    f = Frame k es
-
-getSaved :: Parser [STAREntry]
-getSaved = Parser parser
-  where
-    parser pst@(ParserState _ sd) = (pst, ParseSuccess sd)
-
-setSaved :: [STAREntry] -> Parser ()
-setSaved sd = Parser parser
-  where
-    parser (ParserState inp sd) = (ParserState inp sd, ParseSuccess ())
-
-frameLookup :: String -> [STAREntry] -> Maybe STAREntry
-frameLookup k (f@(Frame l _):fs) | k == l = Just f
-frameLookup k (_            :fs)          = frameLookup k fs
-frameLookup k []                          = Nothing
-
-deref :: STARKey -> Parser STAREntry
-deref x = do sd <- getSaved
-             case frameLookup x sd of
-               Nothing -> fail ("Cannot locate frame " ++ show x)
-               Just f  -> return f
---
-parseThen :: Parser a -> (a -> Parser b) -> Parser b
-(Parser a) `parseThen` pb = Parser (\st -> st `seq` case a st of
-                                                      (!st', ParseFail    s) -> (st', ParseFail s)
-                                                      (!st', ParseSuccess a) -> unParser (pb a) st')
-
-parseReturn :: a -> Parser a
-parseReturn a = Parser (\st -> (st, ParseSuccess a))
-
-instance Monad Parser where
-  (>>=)  = parseThen
-  return = parseReturn
-  fail   = parseFail . BSC.pack
-
-getToken :: (Token -> Parser a) -> Parser a
-getToken cont = do i <- getInput
-                   case alexScan i 0 of
-                     AlexEOF              -> cont EOF
-                     AlexError i          -> parseFail "Lexical error"
-                     AlexSkip  i' len     -> do setInput i'
-                                                getToken cont
-                     AlexToken i' len act -> do setInput i'
-                                                let (p, _, s) = i
-                                                    len'      = fromIntegral len
-                                                    !tok       = act p (BSC.take len' s)
-                                                cont tok
-
-parseError :: (Show a) => a -> Parser b
-parseError t = fail $ "parse error at token " ++ show t
-
+-- Parser Tools
 data STARType   = TSimple  STARKey
                 | TComplex [STARType]
   deriving (Show,Eq)
@@ -132,4 +45,5 @@ matchTypesValues' ts ss = (ss', Type.Loop r)
                                                  in  (ss'', lr:r)
         match' (t:_)            (s:ss)         = error ("Can't match declared " ++ show t ++
                                                         " and actual " ++ show s)
+
 

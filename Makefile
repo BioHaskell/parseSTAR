@@ -6,13 +6,13 @@ RTSFLAGS=+RTS -k512M -RTS
 ALEXFLAGS=--ghc
 HAPPYFLAGS=--ghc --decode
 
-test_tokens: TestTokens
-	./TestTokens ${RTSFLAGS} < test.str
-
 all_parser_tests: Parser
 	time ./Parser $(RTSFLAGS) > /dev/null < test.str
 	time ./Parser $(RTSFLAGS) > /dev/null < shifts.str
 	time ./Parser $(RTSFLAGS) > /dev/null < input.str
+
+test_tokens: TestTokens
+	./TestTokens ${RTSFLAGS} < test.str
 
 test2: test_parser
 
@@ -24,7 +24,7 @@ test: TestParserMonad
 test_parser: Parser
 	./Parser +RTS ${RTSFLAGS} < test.str
 
-Parser: Parser.hs Tokens.hs Tokens.hi ParserMonad.hs ParserMonad.hi
+Parser: Parser.hs Tokens.hs Tokens.hi
 	ghc $(GHCFLAGS) $<
 
 TestTokens: TestTokens.hs Tokens.hi
