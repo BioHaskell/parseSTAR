@@ -9,6 +9,7 @@ import Control.Monad.State.Strict
 import qualified Type
 import Prelude hiding (String, getContents, drop, take, (++))
 import Data.ByteString.Lazy.Char8 as BSC
+import Control.DeepSeq
 
 }
 
@@ -31,10 +32,10 @@ import Data.ByteString.Lazy.Char8 as BSC
 --  Err      { Tokens.Err       }
 %%
 
-list(a)  : a list(a) { $1:$2 }
-         |           { []    }
+list(a)  : a list(a) { $1 `seq` $2 `seq` $1:$2 }
+         |           { []                      }
 
-list1(a) : a list(a) { $1:$2 }
+list1(a) : a list(a) { $1 `seq` $2 `seq` $1:$2 }
 
 star :: { [Type.STARBlock] }
 star : list1(block) { $1 }
@@ -53,11 +54,11 @@ flatEntry : item    { $1 }
 	  | topLoop { $1 }
 
 item :: { Type.STAREntry }
-item : Name value { $2 (Tokens.tokenValue $1) }
+item : Name value { let t = Tokens.tokenValue $1 in t `seq` $2 (Tokens.tokenValue $1) }
 
 value :: { Type.STARKey -> Type.STAREntry }
-value : Text { \k -> Type.Entry k (Tokens.tokenValue $1) }
-      | Ref  { \k -> Type.Ref   k (Tokens.tokenValue $1) }
+value : Text { let t = Tokens.tokenValue $1 in t `seq` \k -> Type.Entry k t }
+      | Ref  { let t = Tokens.tokenValue $1 in t `seq` \k -> Type.Ref   k t }
 --{% deref (Tokens.tokenValue $1) >>= \f -> case f of Type.Frame _ es -> return (\k -> Frame k es) }
 
 topLoop :: { Type.STAREntry }
@@ -81,9 +82,9 @@ valueList :: { [STARStruct] }
 valueList : list1(valueListEntry) { $1 }
 
 valueListEntry :: { STARStruct }
-valueListEntry : Text    {% liftM (\p -> SText p $ Tokens.tokenValue $1) Tokens.getPos }
-               | Ref     {% liftM (\p -> SRef  p $ Tokens.tokenValue $1) Tokens.getPos }
-               | EndLoop {% liftM SStop                                  Tokens.getPos }
+valueListEntry : Text    {% liftM (\p -> let t = Tokens.tokenValue $1 in t `seq` p `seq` SText p t) Tokens.getPos }
+               | Ref     {% liftM (\p -> let t = Tokens.tokenValue $1 in t `seq` p `seq` SRef  p t) Tokens.getPos }
+               | EndLoop {% liftM SStop                                                             Tokens.getPos }
 
 {
 
@@ -91,7 +92,7 @@ valueListEntry : Text    {% liftM (\p -> SText p $ Tokens.tokenValue $1) Tokens.
 
 data STARType   = TSimple  Type.STARKey
                 | TComplex [STARType]
-  deriving (Show,Eq)
+  deriving (Show, Eq)
 
 data STARStruct = SText Tokens.AlexPosn Type.String -- keep position for matchTypesValues error reporting!
                 | SRef  Tokens.AlexPosn Type.String -- TODO: implement!!!
@@ -99,12 +100,12 @@ data STARStruct = SText Tokens.AlexPosn Type.String -- keep position for matchTy
   deriving (Show,Eq)
 
 matchTypesValues  :: [STARType] -> [STARStruct] -> Type.STAREntry
-matchTypesValues ts ss = r
-  where ([], r)        = matchTypesValues' ts ss
+matchTypesValues !ts !ss = r
+  where ([], r)          = matchTypesValues' ts ss
 
 -- TODO: change to monad!
 matchTypesValues' :: [STARType] -> [STARStruct] -> ([STARStruct], Type.STAREntry)
-matchTypesValues' ts ss = (ss', Type.Loop r)
+matchTypesValues' ts ss = r `deepseq` (ss', Type.Loop r)
   where (ss', r ) = match' ts ss
         match' :: [STARType] -> [STARStruct] -> ([STARStruct], [Type.STAREntry])
         match' []               (SStop p  :ss) = (ss, [])

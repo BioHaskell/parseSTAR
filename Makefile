@@ -1,10 +1,10 @@
 #GHCFLAGS=-debug
-GHCFLAGS=-rtsopts -prof -auto-all +RTS -H1G -RTS
-#GHCFLAGS=-O3 -rtsopts -rtsopts +RTS -H1G -RTS
+#GHCFLAGS=-rtsopts -prof -auto-all +RTS -H1G -RTS
+GHCFLAGS=-O3 -rtsopts -rtsopts +RTS -H2G -A2M -RTS
 #RTSFLAGS=-xc -k512M
-RTSFLAGS=+RTS -k512M -RTS
+RTSFLAGS=+RTS -k512M -H3G -A2M -s -RTS
 ALEXFLAGS=--ghc
-HAPPYFLAGS=--ghc --decode
+HAPPYFLAGS=--ghc --strict --decode
 
 all_parser_tests: Parser
 	time ./Parser $(RTSFLAGS) > /dev/null < test.str

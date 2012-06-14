@@ -69,19 +69,30 @@ tokens :-
 
 data ParseError = ParseError Int Int String
 
-newtype ParserT m a = ParserT (ErrorT ParseError (StateT AlexInput m) a)
+--newtype ParserT m a = ParserT (ErrorT ParseError (StateT AlexInput m) a)
+type ParserT m a = ErrorT ParseError (StateT AlexInput m) a
 
-type ParserM = ParserT Identity
+type ParserM a = ParserT Identity a
 
-runParserT (ParserT p) s = runStateT (runErrorT p) s
+--runParserT (ParserT p) s = runStateT (runErrorT p) s
+
+runParserT p s = runStateT (runErrorT p) s
 
 runParserM p s = runIdentity $ runParserT p s
 
 runParser parser input = case parsed of
                            (a, _endstate) -> a
   where
-    parsed = Tokens.runParserM parser (initState input)
+    parsed = runParserM parser (initState input)
 
+parseThen = (>>=)
+
+unParserT = id
+
+parseError msg = do (AlexPn l c _, _, _) <- get
+                    throwError $ ParseError l c msg
+
+{-
 parseError msg = ParserT (do (AlexPn l c _, _, _) <- get
                              throwError $ ParseError l c msg)
 
@@ -89,14 +100,16 @@ unParserT (ParserT f) = f
 
 a `parseThen` b = ParserT (do x <- unParserT a
                               unParserT $ b x)
-                                        
+-}                                        
 
-parseReturn a = ParserT (return a)
+--parseReturn a = ParserT (return a)
+parseReturn = return
 
 instance Error ParseError
   where
     strMsg msg = ParseError (-1) (-1) (BSC.pack msg)
 
+{-
 instance MonadTrans ParserT
   where
     lift f = ParserT (lift . lift $ f)
@@ -106,6 +119,8 @@ instance (Monad m)=>Monad (ParserT m)
     (>>=)  = parseThen
     return = parseReturn
     fail   = parseError . BSC.pack
+-}
+
 chop :: String -> String -> String
 chop s = chopFront s . chopTail s
 
@@ -149,18 +164,18 @@ tailCut c bbs | Just (b, bs) <- bbs                   = BSC.cons b (tailCut c bs
 -- The token type:
 data Token =
         White           |
-        Name    String  |
-        Text    String  |
-        Comment String  |
-        Save    String  |
+        Name    !String |
+        Text    !String |
+        Comment !String |
+        Save    !String |
         EndSave         |
         Loop            |
         EndLoop         |
-        Data    String  |
+        Data    !String |
         Global          |
-        Ref     String  |
+        Ref     !String |
         EOF             |
-        Err     String
+        Err     !String
   deriving (Eq,Show)
 
 tokenValue (Name    s) = s
@@ -176,25 +191,25 @@ initState input = (AlexPn 0 0 0, '\n', input)
 firstLine  = BSC.takeWhile (/= '\n')
 --firstLines s = intersperse "\n" . take 2 . splitWith '\n' $ s
 
-getPos = Tokens.ParserT (do (pos, _, _) <- get
-                            return pos)
+getPos = do (pos, _, _) <- get
+            return pos
 
-tokenTaker = Tokens.ParserT $ lift $ mapState getToken' (return ())
+tokenTaker = lift $ mapState getToken' (return ())
 
 getToken cont = do t <- tokenTaker
                    case t of
-                     Tokens.Err msg -> fail "lexical error"
-                     _              -> cont t
+                     Err msg -> parseError "lexical error"
+                     _       -> cont t
 
 getToken' ((), alexInput) = scanForToken alexInput
 
-scanForToken alexState = case Tokens.alexScan alexState 0 of
-                                    Tokens.AlexEOF                            -> (Tokens.EOF, alexState)
-                                    Tokens.AlexError i                        -> (Tokens.Err "lexical error", alexState)
-                                    Tokens.AlexSkip  !newAlexState len        -> scanForToken newAlexState
-                                    Tokens.AlexToken !newAlexState toklen act -> let (pos, _, str) = alexState
-                                                                                     tokStr        = BSC.take (fromIntegral toklen) str
-                                                                                     !token        = act pos tokStr
-                                                                                 in (token, newAlexState)
+scanForToken alexState = case alexScan alexState 0 of
+                           AlexEOF                            -> (EOF, alexState)
+                           AlexError i                        -> (Err "lexical error", alexState)
+                           AlexSkip  !newAlexState len        -> scanForToken newAlexState
+                           AlexToken !newAlexState toklen act -> let (pos, _, str) = alexState
+                                                                     tokStr        = BSC.take (fromIntegral toklen) str
+                                                                     !token        = act pos tokStr
+                                                                 in (token, newAlexState)
 
 }
