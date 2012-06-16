@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction #-}
 module Tokens (Token(..), ParserT(..), unParserT,
                tokenValue,
-               alexScan, alexScanTokens,
+               alexScan,
                AlexPosn(..), AlexReturn(..), AlexInput(..),
                initState,
                parseThen, parseReturn, parseError, ParserM(..), runParserT, runParser,
@@ -24,6 +24,8 @@ import Control.Monad.Identity
 import Data.Int
 import Data.Binary.Put
 import Data.Function
+import Data.ByteString.Internal(ByteString(..))
+import Control.Exception(assert)
 
 -- Question: case insensitive?
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
@@ -48,34 +50,30 @@ $doubleQuote = [\"]
 $nonsemi     = [^\;]
 
 tokens :-
-  $white +					    ;
-  $commentChar .* $eoln                             ;
-  $under $nonspecial*   / $white                    { (\p s -> Name . drop (BSC.length "_"    )   $ s ) }  
-  "save_" $nonspecial+                              { (\p s -> Save . drop (BSC.length "save_")   $ s ) }
-  "save_"   / $white                                { (\p s -> EndSave                                ) }
-  "stop_"                                           { (\p s -> EndLoop                                ) }
-  "loop_"                                           { (\p s -> Loop                                   ) }
-  "global_"                                         { (\p s -> Global                                 ) }
-  "data_" $nonwhite+ / $white                       { (\p s -> Data . chopFront "data_"           $ s ) }
-  $dollar $nonwhite+ / $white                       { (\p s -> Ref  . chopFront "$"               $ s ) }
-  $singleQuote $noneoln+ $singleQuote               { (\p s -> Text . chop "\'"                   $ s ) }
-  $doubleQuote $noneoln+ $doubleQuote               { (\p s -> Text . chop "\""                   $ s ) }
-  $nonunder $nonspecial* / $white                   { (\p s -> Text s                                 ) }
-  --^$semi $eoln [^\;]* $semi $eoln                   { (\p s -> Text . chop ";\n"                  $ s ) }
-  ^$semi $eoln [^\n]* $semi $eoln                   { (\p s -> Text . chop ";\n"                  $ s ) }
-  --^";\n" $nonsemi* $eoln ";\n"                    { (\p s -> Text . chop ";\n"                  $ s ) }
-  --^";\n" ( $nonsemi $noneolnsemi* $eoln )* ";\n"  { (\p s -> Text . chop ";\n"                  $ s ) }
-
+<0>  $white +					       ;
+<0>  $commentChar .* $eoln                             ;
+<0>  $under $nonspecial*   / $white                    { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0         ) } 
+<0>  "save_" $nonspecial+                              { (\p s -> Save . drop (BSC.length "save_")   $ s , 0         ) }
+<0>  "save_"   / $white                                { (\p s -> EndSave                                , 0         ) }
+<0>  "stop_"                                           { (\p s -> EndLoop                                , 0         ) }
+<0>  "loop_"                                           { (\p s -> Loop                                   , 0         ) }
+<0>  "global_"                                         { (\p s -> Global                                 , 0         ) }
+<0>  "data_" $nonwhite+ / $white                       { (\p s -> Data . chopFront "data_"           $ s , 0         ) }
+<0>  $dollar $nonwhite+ / $white                       { (\p s -> Ref  . chopFront "$"               $ s , 0         ) }
+<0>  $singleQuote [^\n\']+ $singleQuote                { (\p s -> Text . chop "\'"                   $ s , 0         ) }
+<0>  $doubleQuote [^\n\"]+ $doubleQuote                { (\p s -> Text . chop "\""                   $ s , 0         ) }
+<0>  $nonunder $nonspecial* / $white                   { (\p s -> Text s                                 , 0         ) }
+<0>  ^$semi $eoln                                      { (\p s -> SemiStart (stringStep s   2 )          , semistring) }
+<semistring> ^$semi                                    { (\p s -> SemiEnd   (stringStep s (-2))          , 0         ) }
+<semistring> ^[^\;] .* $eoln                           ;
+<semistring> ^ $eoln                                   ;
 {
 
-data ParseError = ParseError Int Int String
+data ParseError = ParseError Int Int Int String
 
---newtype ParserT m a = ParserT (ErrorT ParseError (StateT AlexInput m) a)
-type ParserT m a = ErrorT ParseError (StateT AlexInput m) a
+type ParserT m a = ErrorT ParseError (StateT (AlexInput, Int) m) a
 
 type ParserM a = ParserT Identity a
-
---runParserT (ParserT p) s = runStateT (runErrorT p) s
 
 runParserT p s = runStateT (runErrorT p) s
 
@@ -90,37 +88,14 @@ parseThen = (>>=)
 
 unParserT = id
 
-parseError msg = do (AlexPn l c _, _, _) <- get
-                    throwError $ ParseError l c msg
+parseError msg = do ((AlexPn l c _, _, _), state) <- get
+                    throwError $ ParseError l c state msg
 
-{-
-parseError msg = ParserT (do (AlexPn l c _, _, _) <- get
-                             throwError $ ParseError l c msg)
-
-unParserT (ParserT f) = f
-
-a `parseThen` b = ParserT (do x <- unParserT a
-                              unParserT $ b x)
--}                                        
-
---parseReturn a = ParserT (return a)
 parseReturn = return
 
 instance Error ParseError
   where
-    strMsg msg = ParseError (-1) (-1) (BSC.pack msg)
-
-{-
-instance MonadTrans ParserT
-  where
-    lift f = ParserT (lift . lift $ f)
-
-instance (Monad m)=>Monad (ParserT m)
-  where
-    (>>=)  = parseThen
-    return = parseReturn
-    fail   = parseError . BSC.pack
--}
+    strMsg msg = ParseError (-1) (-1) (-1) (BSC.pack msg)
 
 chop :: String -> String -> String
 chop s = chopFront s . chopTail s
@@ -164,35 +139,39 @@ tailCut c bbs | Just (b, bs) <- bbs                   = BSC.cons b (tailCut c bs
 
 -- The token type:
 data Token =
-        White           |
-        Name    !String |
-        Text    !String |
-        Comment !String |
-        Save    !String |
-        EndSave         |
-        Loop            |
-        EndLoop         |
-        Data    !String |
-        Global          |
-        Ref     !String |
-        EOF             |
-        Err     !String
+        White             |
+        Name      !String |
+        Text      !String |
+        Comment   !String |
+        Save      !String |
+        EndSave           |
+        Loop              |
+        EndLoop           |
+        Data      !String |
+        Global            |
+        Ref       !String |
+        EOF               |
+        SemiStart !String |
+        SemiEnd   !String |
+        Err       !String
   deriving (Eq,Show)
 
-tokenValue (Name    s) = s
-tokenValue (Text    s) = s
-tokenValue (Comment s) = s
-tokenValue (Save    s) = s
-tokenValue (Data    s) = s
-tokenValue (Ref     s) = s
+tokenValue (Name      s) = s
+tokenValue (Text      s) = s
+tokenValue (Comment   s) = s
+tokenValue (Save      s) = s
+tokenValue (Data      s) = s
+tokenValue (Ref       s) = s
+tokenValue (SemiEnd   s) = s
+tokenValue (SemiStart s) = s
 tokenValue _             = error "Wrong token"
 
-initState input = (alexStartPos, '\n', input)
+initState input = ((alexStartPos, '\n', input), 0)
 
 firstLine  = BSC.takeWhile (/= '\n')
 --firstLines s = intersperse "\n" . take 2 . splitWith '\n' $ s
 
-getPos = do (pos, _, _) <- get
+getPos = do ((pos, _, _), _) <- get
             return pos
 
 tokenTaker = lift $ mapState getToken' (return ())
@@ -202,15 +181,18 @@ getToken cont = do t <- tokenTaker
                      Err msg -> parseError "lexical error"
                      _       -> cont t
 
-getToken' ((), alexInput) = scanForToken alexInput
+getToken' ((), alexInputState) = scanForToken alexInputState
 
-scanForToken alexState = case alexScan alexState 0 of
-                           AlexEOF                            -> (EOF, alexState)
-                           AlexError i                        -> (Err "lexical error", alexState)
-                           AlexSkip  !newAlexState len        -> scanForToken newAlexState
-                           AlexToken !newAlexState toklen act -> let (pos, _, str) = alexState
-                                                                     tokStr        = BSC.take (fromIntegral toklen) str
-                                                                     !token        = act pos tokStr
-                                                                 in (token, newAlexState)
+scanForToken (alexInput, alexState) = case alexScan alexInput alexState of
+                                        AlexEOF                                        -> (EOF, (alexInput, alexState))
+                                        AlexError i                                    -> (Err "lexical error", (alexInput, alexState))
+                                        AlexSkip  !newAlexInput len                    -> scanForToken (newAlexInput, alexState)
+                                        AlexToken !newAlexInput toklen (act, newState) -> let (pos, _, str) = alexInput
+                                                                                              tokStr        = BSC.take (fromIntegral toklen) str
+                                                                                              !token        = act pos tokStr
+                                                                                          in (token, (newAlexInput, newState))
+
+stringStep (PS x s l) i = assert (si >  0) $ PS x si l
+  where si = s+i
 
 }

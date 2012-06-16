@@ -8,8 +8,11 @@ import Control.Monad(liftM, liftM2)
 import Control.Monad.State.Strict
 import qualified Type
 import Prelude hiding (String, getContents, drop, take, (++))
-import Data.ByteString.Lazy.Char8 as BSC
+import Data.ByteString.Char8    as BSC
+import Data.ByteString.Internal as BSI
 import Control.DeepSeq
+import Control.Exception(assert)
+import qualified GHC.Exts as Happy_GHC_Exts
 
 }
 
@@ -20,20 +23,24 @@ import Control.DeepSeq
 %error     { failToken       }
 
 %token
-    Name     { Tokens.Name    _ }
-    Text     { Tokens.Text    _ }
-    Save     { Tokens.Save    _ }
-    Endsave  { Tokens.EndSave   }
-    Loop     { Tokens.Loop      }
-    EndLoop  { Tokens.EndLoop   }
-    Data     { Tokens.Data    _ }
-    Global   { Tokens.Global    }
-    Ref      { Tokens.Ref     _ }
---  Err      { Tokens.Err       }
+    Name      { Tokens.Name      _ }
+    Text      { Tokens.Text      _ }
+    Save      { Tokens.Save      _ }
+    Endsave   { Tokens.EndSave     }
+    Loop      { Tokens.Loop        }
+    EndLoop   { Tokens.EndLoop     }
+    Data      { Tokens.Data      _ }
+    Global    { Tokens.Global      }
+    Ref       { Tokens.Ref       _ }
+    SemiStart { Tokens.SemiStart _ }
+    SemiEnd   { Tokens.SemiEnd   _ }
+--  Err       { Tokens.Err         }
 %%
 
-list(a)  : a list(a) { $1 `seq` $1:$2 }
-         |           { []             }
+list_(a) : list_(a) a { $2:$1 }
+         |            { []    }
+
+list(a) : list_(a) { Prelude.reverse $1 }
 
 list1(a) : a list(a) { $1 `seq` $1:$2 }
 
@@ -57,9 +64,13 @@ item :: { Type.STAREntry }
 item : Name value { let t = Tokens.tokenValue $1 in t `seq` $2 (Tokens.tokenValue $1) }
 
 value :: { Type.STARKey -> Type.STAREntry }
-value : Text { let t = Tokens.tokenValue $1 in t `seq` \k -> Type.Entry k t }
-      | Ref  { let t = Tokens.tokenValue $1 in t `seq` \k -> Type.Ref   k t }
+value : Text     { let t = Tokens.tokenValue $1 in t `seq` \k -> Type.Entry k t  }
+      | Ref      { let t = Tokens.tokenValue $1 in t `seq` \k -> Type.Ref   k t  }
+      | semilist {                                $1 `seq` \k -> Type.Entry k $1 }
 --{% deref (Tokens.tokenValue $1) >>= \f -> case f of Type.Frame _ es -> return (\k -> Frame k es) }
+
+semilist :: { Type.String }
+semilist : SemiStart SemiEnd { cheatConcat (Tokens.tokenValue $1) (Tokens.tokenValue $2) }
 
 topLoop :: { Type.STAREntry }
 topLoop : Loop list1(structure) list1(valueListEntry) { matchTypesValues $2 $3 }
@@ -71,22 +82,17 @@ structure :: { STARType }
 structure : Name                          { TSimple  (Tokens.tokenValue $1) }
 	  | Loop list1(structure) EndLoop { TComplex $2                     }
 
---nameList :: { [STARType] }
---nameList : list1(nameListEntry) { $1 }
-
---nameListEntry :: { STARType }
---nameListEntry : Name { TSimple  $ Tokens.tokenValue $1 }
---              | loop { TComplex $1 }
-
 valueList :: { [STARStruct] }
 valueList : list1(valueListEntry) { $1 }
 
 valueListEntry :: { STARStruct }
-valueListEntry : Text    {% liftM (\p -> let t = Tokens.tokenValue $1 in t `seq` p `seq` SText p t) Tokens.getPos }
-               | Ref     {% liftM (\p -> let t = Tokens.tokenValue $1 in t `seq` p `seq` SRef  p t) Tokens.getPos }
-               | EndLoop {% liftM SStop                                                             Tokens.getPos }
-
+valueListEntry : Text     {% liftM (\p -> let t = Tokens.tokenValue $1 in t `seq` p `seq` SText p  t) Tokens.getPos }
+               | Ref      {% liftM (\p -> let t = Tokens.tokenValue $1 in t `seq` p `seq` SRef  p  t) Tokens.getPos }
+               | EndLoop  {% liftM SStop                                                              Tokens.getPos }
+               | semilist {% liftM (\p ->                                $1 `seq` p `seq` SText p $1) Tokens.getPos }
 {
+
+cheatConcat (PS x1 s1 l1) (PS x2 s2 l2) = assert (x1 == x2) $ PS x1 s1 (s2+l2-s1)
 
 (++) = BSC.append
 
@@ -123,14 +129,15 @@ matchTypesValues' ts ss = r `deepseq` (ss', Type.Loop r)
                                                                          " and actual ",
                                                                          show s]
 
-failToken tok = fail $ Prelude.concat ["parse error on ", show tok]
+failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ show tok]
 
 main = do r <- BSC.getContents
           case Tokens.runParser parseSTAR r of
-            Left  (Tokens.ParseError l c s) -> Prelude.putStrLn $ Prelude.concat ["Parse error in line ", show l,
-                                                                                  " column ", show c,
-                                                                                  ":", BSC.unpack s]
-            Right result                    -> print result
+            Left  (Tokens.ParseError l c st s) -> Prelude.putStrLn $ Prelude.concat ["Parse error in line ", show l,
+                                                                                     " column ", show c,
+                                                                                     ":", BSC.unpack s,
+                                                                                     "(lexer state is ", show st, ")"]
+            Right result                       -> print result
 
 }
 
