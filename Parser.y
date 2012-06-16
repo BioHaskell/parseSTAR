@@ -16,7 +16,7 @@ import Control.DeepSeq
 %name      parseSTAR star
 %tokentype { Tokens.Token    }
 %monad     { Tokens.ParserM  } { Tokens.parseThen } { Tokens.parseReturn }
-%lexer     { Tokens.getToken } { Tokens.EOF }
+%lexer     { Tokens.getToken } { Tokens.EOF       }
 %error     { failToken       }
 
 %token
@@ -32,10 +32,10 @@ import Control.DeepSeq
 --  Err      { Tokens.Err       }
 %%
 
-list(a)  : a list(a) { $1 `seq` $2 `seq` $1:$2 }
-         |           { []                      }
+list(a)  : a list(a) { $1 `seq` $1:$2 }
+         |           { []             }
 
-list1(a) : a list(a) { $1 `seq` $2 `seq` $1:$2 }
+list1(a) : a list(a) { $1 `seq` $1:$2 }
 
 star :: { [Type.STARBlock] }
 star : list1(block) { $1 }

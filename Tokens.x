@@ -12,8 +12,8 @@ module Tokens (Token(..), ParserT(..), unParserT,
 
 import Prelude hiding(String, take, drop)
 import Type(String)
-import Data.ByteString.Lazy.Char8 as BSC
-import Data.ByteString.Lazy.Char8(take,drop)
+import Data.ByteString.Char8 as BSC
+import Data.ByteString.Char8(take,drop)
 
 --import Text.Show.ByteString
 import Control.Monad.State.Strict
@@ -29,7 +29,7 @@ import Data.Function
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
 }
 
-%wrapper "posn-bytestring"
+%wrapper "posn-bytestring-strict"
 
 $white       = [ \t \n \f \v \r \  ]
 $nonwhite    = ~ $white # [ \# \! ] -- non-whitespace
@@ -49,7 +49,7 @@ $nonsemi     = [^\;]
 
 tokens :-
   $white +					    ;
-  $commentChar .* $eoln                                    ;
+  $commentChar .* $eoln                             ;
   $under $nonspecial*   / $white                    { (\p s -> Name . drop (BSC.length "_"    )   $ s ) }  
   "save_" $nonspecial+                              { (\p s -> Save . drop (BSC.length "save_")   $ s ) }
   "save_"   / $white                                { (\p s -> EndSave                                ) }
@@ -61,7 +61,8 @@ tokens :-
   $singleQuote $noneoln+ $singleQuote               { (\p s -> Text . chop "\'"                   $ s ) }
   $doubleQuote $noneoln+ $doubleQuote               { (\p s -> Text . chop "\""                   $ s ) }
   $nonunder $nonspecial* / $white                   { (\p s -> Text s                                 ) }
-  ^$semi $eoln [.\n]* $semi $eoln                   { (\p s -> Text . chop ";\n"                  $ s ) }
+  --^$semi $eoln [^\;]* $semi $eoln                   { (\p s -> Text . chop ";\n"                  $ s ) }
+  ^$semi $eoln [^\n]* $semi $eoln                   { (\p s -> Text . chop ";\n"                  $ s ) }
   --^";\n" $nonsemi* $eoln ";\n"                    { (\p s -> Text . chop ";\n"                  $ s ) }
   --^";\n" ( $nonsemi $noneolnsemi* $eoln )* ";\n"  { (\p s -> Text . chop ";\n"                  $ s ) }
 
@@ -186,7 +187,7 @@ tokenValue (Data    s) = s
 tokenValue (Ref     s) = s
 tokenValue _             = error "Wrong token"
 
-initState input = (AlexPn 0 0 0, '\n', input)
+initState input = (alexStartPos, '\n', input)
 
 firstLine  = BSC.takeWhile (/= '\n')
 --firstLines s = intersperse "\n" . take 2 . splitWith '\n' $ s

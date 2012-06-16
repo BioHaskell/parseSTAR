@@ -7,7 +7,7 @@ module Type(
        String
 ) where
 
-import Data.ByteString.Lazy.Char8 as BSC
+import Data.ByteString.Char8 as BSC
 import Prelude hiding(String)
 import Control.DeepSeq
 

@@ -1,18 +1,19 @@
 #GHCFLAGS=-debug
-#GHCFLAGS=-rtsopts -prof -auto-all +RTS -H1G -RTS
-GHCFLAGS=-O3 -rtsopts -rtsopts +RTS -H2G -A2M -RTS
+GHCFLAGS=-rtsopts -prof -auto-all +RTS -H2G -RTS
+#GHCFLAGS=-O3 -rtsopts +RTS -H2G -A2M -RTS
 #RTSFLAGS=-xc -k512M
 RTSFLAGS=+RTS -k512M -H3G -A2M -s -RTS
-ALEXFLAGS=--ghc
+ALEXFLAGS=--ghc --template=.
 HAPPYFLAGS=--ghc --strict --decode
+#HAPPYFLAGS=--glr
+
+test_tokens: TestTokens
+	./TestTokens ${RTSFLAGS} < test.str
 
 all_parser_tests: Parser
 	time ./Parser $(RTSFLAGS) > /dev/null < test.str
 	time ./Parser $(RTSFLAGS) > /dev/null < shifts.str
 	time ./Parser $(RTSFLAGS) > /dev/null < input.str
-
-test_tokens: TestTokens
-	./TestTokens ${RTSFLAGS} < test.str
 
 test2: test_parser
 
