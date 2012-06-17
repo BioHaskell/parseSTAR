@@ -86,10 +86,10 @@ valueList :: { [STARStruct] }
 valueList : list1(valueListEntry) { $1 }
 
 valueListEntry :: { STARStruct }
-valueListEntry : Text     {% liftM (\p -> let t = Tokens.tokenValue $1 in t `seq` p `seq` SText p  t) Tokens.getPos }
-               | Ref      {% liftM (\p -> let t = Tokens.tokenValue $1 in t `seq` p `seq` SRef  p  t) Tokens.getPos }
-               | EndLoop  {% liftM SStop                                                              Tokens.getPos }
-               | semilist {% liftM (\p ->                                $1 `seq` p `seq` SText p $1) Tokens.getPos }
+valueListEntry : Text     { SText $ Tokens.tokenValue $1 }
+               | Ref      { SRef  $ Tokens.tokenValue $1 }
+               | EndLoop  { SStop                        }
+               | semilist { SText                     $1 }
 {
 
 cheatConcat (PS x1 s1 l1) (PS x2 s2 l2) = assert (x1 == x2) $ PS x1 s1 (s2+l2-s1)
@@ -100,34 +100,28 @@ data STARType   = TSimple  Type.STARKey
                 | TComplex [STARType]
   deriving (Show, Eq)
 
-data STARStruct = SText Tokens.AlexPosn Type.String -- keep position for matchTypesValues error reporting!
-                | SRef  Tokens.AlexPosn Type.String -- TODO: implement!!!
-                | SStop Tokens.AlexPosn
+data STARStruct = SText Type.String -- keep position for matchTypesValues error reporting!
+                | SRef  Type.String -- TODO: implement!!!
+                | SStop 
   deriving (Show,Eq)
 
 matchTypesValues  :: [STARType] -> [STARStruct] -> Type.STAREntry
-matchTypesValues !ts !ss = r
-  where ([], r)          = matchTypesValues' ts ss
+matchTypesValues !ts !ss = matchTypesValues' ts ts ss [] finish
+  where
+    finish entries [] = Type.Loop $ Prelude.reverse entries
 
--- TODO: change to monad!
-matchTypesValues' :: [STARType] -> [STARStruct] -> ([STARStruct], Type.STAREntry)
-matchTypesValues' ts ss = r `deepseq` (ss', Type.Loop r)
-  where (ss', r ) = match' ts ss
-        match' :: [STARType] -> [STARStruct] -> ([STARStruct], [Type.STAREntry])
-        match' []               (SStop p  :ss) = (ss, [])
-        match' []               ss             = match' ts ss
-        match' (TSimple  t :ts) (SText p s:ss) = let (ss',                r) = match'    ts ss
-                                                 in  (ss', Type.Entry t s:r)
-        match' (TSimple  t :ts) (SRef  p s:ss) = let (ss',                r) = match'    ts ss
-                                                 in  (ss', Type.Ref   t s:r)
-        match' (TComplex tc:ts) []             = error $ Prelude.concat ["Cannot find any more values to match ", show (TComplex tc)]
-        match' (TComplex tc:ts) ss             = let (ss' , lr  ) = matchTypesValues' tc ss
-                                                     (ss'',    r) = match'            ts ss'
-                                                 in  (ss'', lr:r)
-        match' (t:_)            (s:ss)         = error $ Prelude.concat ["Can't match declared ",
-                                                                         show t,
-                                                                         " and actual ",
-                                                                         show s]
+matchTypesValues' :: [STARType] -> [STARType] -> [STARStruct] -> [Type.STAREntry] -> ([Type.STAREntry] -> [STARStruct] -> a) -> a
+matchTypesValues' (TSimple t:ts)   tts (SText  s:ss) !acc !cont = matchTypesValues' ts  tts ss (Type.Entry t s:acc) cont
+matchTypesValues' (TSimple t:ts)   tts (SRef   s:ss) !acc !cont = matchTypesValues' ts  tts ss (Type.Ref   t s:acc) cont
+matchTypesValues' (TComplex tc:ts) tts ss            !acc !cont = matchTypesValues' tc  tc  ss []                   loopCont
+  where
+    loopCont es sn = matchTypesValues' ts tts sn (Type.Loop (Prelude.reverse es):acc) cont
+matchTypesValues' []               tts (SStop   :ss) !acc !cont = cont acc ss
+matchTypesValues' []               tts ss            !acc !cont = matchTypesValues' tts tts ss acc                  cont
+matchTypesValues' (t:_)            _   (s:ss)        !acc !cont = error $ Prelude.concat ["Can't match declared ",
+                                                                                        show t,
+                                                                                        " and actual ",
+                                                                                        show s]
 
 failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ show tok]
 
