@@ -1,0 +1,13 @@
+name:                parsestar
+version:             1.0
+synopsis:            NMR-STAR file format parser.
+description:         <Project description>
+category:            Data
+license:             BSD3
+license-file:        LICENSE
+author:              Michal J. Gajda
+maintainer:          mgajda@gwdg.de
+build-depends:       base
+build-type:          Simple
+ghc-options:         
+Depends: bytestring-show, mtl, base, alex, happy, binary
