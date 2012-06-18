@@ -24,8 +24,8 @@ import Control.Monad.Identity
 import Data.Int
 import Data.Binary.Put
 import Data.Function
-import Data.ByteString.Internal(ByteString(..))
 import Control.Exception(assert)
+import StringUtil(stringStep)
 
 -- Question: case insensitive?
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
@@ -191,8 +191,5 @@ scanForToken (alexInput, alexState) = case alexScan alexInput alexState of
                                                                                               tokStr        = BSC.take (fromIntegral toklen) str
                                                                                               !token        = act pos tokStr
                                                                                           in (token, (newAlexInput, newState))
-
-stringStep (PS x s l) i = assert (si >  0) $ PS x si l
-  where si = s+i
 
 }

@@ -9,10 +9,10 @@ import Control.Monad.State.Strict
 import qualified Type
 import Prelude hiding (String, getContents, drop, take, (++))
 import Data.ByteString.Char8    as BSC
-import Data.ByteString.Internal as BSI
 import Control.DeepSeq
-import Control.Exception(assert)
 import qualified GHC.Exts as Happy_GHC_Exts
+import System.Environment(getArgs)
+import StringUtil
 
 }
 
@@ -92,10 +92,6 @@ valueListEntry : Text     { SText $ Tokens.tokenValue $1 }
                | semilist { SText                     $1 }
 {
 
-cheatConcat (PS x1 s1 l1) (PS x2 s2 l2) = assert (x1 == x2) $ PS x1 s1 (s2+l2-s1)
-
-(++) = BSC.append
-
 data STARType   = TSimple  Type.STARKey
                 | TComplex [STARType]
   deriving (Show, Eq)
@@ -119,19 +115,21 @@ matchTypesValues' (TComplex tc:ts) tts ss            !acc !cont = matchTypesValu
 matchTypesValues' []               tts (SStop   :ss) !acc !cont = cont acc ss
 matchTypesValues' []               tts ss            !acc !cont = matchTypesValues' tts tts ss acc                  cont
 matchTypesValues' (t:_)            _   (s:ss)        !acc !cont = error $ Prelude.concat ["Can't match declared ",
-                                                                                        show t,
-                                                                                        " and actual ",
-                                                                                        show s]
+                                                                                          show t,
+                                                                                          " and actual ",
+                                                                                          show s]
 
 failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ show tok]
 
-main = do r <- BSC.getContents
-          case Tokens.runParser parseSTAR r of
-            Left  (Tokens.ParseError l c st s) -> Prelude.putStrLn $ Prelude.concat ["Parse error in line ", show l,
-                                                                                     " column ", show c,
-                                                                                     ":", BSC.unpack s,
-                                                                                     "(lexer state is ", show st, ")"]
-            Right result                       -> print result
+main = do args <- getArgs
+          mapM (\fname ->
+                do r <- simpleRead fname
+                   case Tokens.runParser parseSTAR r of
+                     Left  (Tokens.ParseError l c st s) -> Prelude.putStrLn $ Prelude.concat ["Parse error in line ", show l,
+                                                                                              " column ", show c,
+                                                                                              ":", BSC.unpack s,
+                                                                                              "(lexer state is ", show st, ")"]
+                     Right result                       -> print result) args
 
 }
 

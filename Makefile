@@ -8,15 +8,15 @@ HAPPYFLAGS=--ghc --strict #--decode
 #HAPPYFLAGS=--glr
 
 test2: Parser
-	./Parser +RTS -hy -Pa -xc < test3.str
+	./Parser +RTS -hy -Pa -xc -RTS test3.str >/dev/null
 
 test_tokens: TestTokens
-	./TestTokens ${RTSFLAGS} < test.str
+	./TestTokens ${RTSFLAGS}  test.str
 
 all_parser_tests: Parser
-	time ./Parser $(RTSFLAGS) > /dev/null < test.str
-	time ./Parser $(RTSFLAGS) > /dev/null < shifts.str
-	time ./Parser $(RTSFLAGS) > /dev/null < input.str
+	time ./Parser $(RTSFLAGS) test.str   > /dev/null 
+	time ./Parser $(RTSFLAGS) shifts.str > /dev/null 
+	time ./Parser $(RTSFLAGS) input.str  > /dev/null 
 
 test: TestParserMonad
 	./TestParserMonad
@@ -24,7 +24,7 @@ test: TestParserMonad
 #test: test_tokens test_parser
 
 test_parser: Parser
-	./Parser +RTS ${RTSFLAGS} < test.str
+	./Parser +RTS ${RTSFLAGS} -RTS test.str
 
 Parser: Parser.hs Tokens.hs Tokens.hi
 	ghc $(GHCFLAGS) $<

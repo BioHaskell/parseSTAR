@@ -4,8 +4,8 @@ module Main(main) where
 import Prelude
 import Data.ByteString.Char8 as BS
 import Tokens
-
---(++) = BS.append
+import StringUtil(simpleRead)
+import System.Environment(getArgs)
 
 myScanTokens str = go (initState str)
   where go (inp@(pos,_,str), state) =
@@ -16,5 +16,7 @@ myScanTokens str = go (initState str)
                 AlexToken inp' len (act, state')       -> do print $ act pos (BS.take (fromIntegral len) str)
                                                              go (inp', state')
 -- Test
-main = do s <- BS.getContents
-          myScanTokens s
+main = do args <- getArgs
+          mapM (\fname ->
+                do s <- simpleRead fname
+                   myScanTokens s) args
