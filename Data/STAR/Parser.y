@@ -1,18 +1,17 @@
 {
 {-# LANGUAGE OverloadedStrings, BangPatterns, NoMonomorphismRestriction #-}
-module Main(main) where
+module Data.STAR.Parser(parse, parseFile) where
 
-import qualified Tokens
+import qualified Data.STAR.Tokens as Tokens
 
 import Control.Monad(liftM, liftM2)
 import Control.Monad.State.Strict
-import qualified Type
+import qualified Data.STAR.Type as Type
 import Prelude hiding (String, getContents, drop, take, (++))
 import Data.ByteString.Char8    as BSC
 import Control.DeepSeq
 import qualified GHC.Exts as Happy_GHC_Exts
-import System.Environment(getArgs)
-import StringUtil
+import Data.STAR.StringUtil
 
 }
 
@@ -121,15 +120,17 @@ matchTypesValues' (t:_)            _   (s:ss)        !acc !cont = error $ Prelud
 
 failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ show tok]
 
-main = do args <- getArgs
-          mapM (\fname ->
-                do r <- simpleRead fname
-                   case Tokens.runParser parseSTAR r of
-                     Left  (Tokens.ParseError l c st s) -> Prelude.putStrLn $ Prelude.concat ["Parse error in line ", show l,
-                                                                                              " column ", show c,
-                                                                                              ":", BSC.unpack s,
-                                                                                              "(lexer state is ", show st, ")"]
-                     Right result                       -> print result) args
+parse = Tokens.runParser parseSTAR
+
+parseFile fname = do r <- simpleRead fname
+                     case parse r of
+                       Left  (Tokens.ParseError l c st s) -> return $ Left $ Prelude.concat ["Parse error in line ", show l,
+                                                                                             " column ", show c,
+                                                                                             ":", BSC.unpack s,
+                                                                                             "(lexer state is ", show st, ")"]
+                                                               
+                       Right result                       -> return $ Right result
+
 
 }
 

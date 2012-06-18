@@ -1,17 +1,17 @@
 {
 {-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction #-}
-module Tokens (Token(..), ParserT(..), unParserT,
-               tokenValue,
-               alexScan,
-               AlexPosn(..), AlexReturn(..), AlexInput(..),
-               initState,
-               parseThen, parseReturn, parseError, ParserM(..), runParserT, runParser,
-               getPos, getToken,
-               ParseError(..)
-              ) where
+module Data.STAR.Tokens (Token(..), ParserT(..), unParserT,
+                         tokenValue,
+                         alexScan,
+                         AlexPosn(..), AlexReturn(..), AlexInput(..),
+                         initState,
+                         parseThen, parseReturn, parseError, ParserM(..), runParserT, runParser,
+                         getPos, getToken,
+                         ParseError(..)
+                        ) where
 
 import Prelude hiding(String, take, drop)
-import Type(String)
+import Data.STAR.Type(String)
 import Data.ByteString.Char8 as BSC
 import Data.ByteString.Char8(take,drop)
 
@@ -25,7 +25,7 @@ import Data.Int
 import Data.Binary.Put
 import Data.Function
 import Control.Exception(assert)
-import StringUtil(stringStep)
+import Data.STAR.StringUtil(stringStep)
 
 -- Question: case insensitive?
 -- NOTE: disallowed comments '!' '#' within strings (including ";")
@@ -34,10 +34,11 @@ import StringUtil(stringStep)
 %wrapper "posn-bytestring-strict"
 
 $white       = [ \t \n \f \v \r \  ]
-$nonwhite    = ~ $white # [ \# \! ] -- non-whitespace
+$nonwhiteFirst = ~ $white # [ \# \! ] -- non-whitespace
+$nonwhite    = ~ $white -- non-whitespace
 $nonspecial  = $nonwhite # ['"\;\$] -- not whitespace and not underline
 $nonspec     = [a-zA-Z0-9_] -- not whitespace and not underline
-$nonunder    = $nonspecial # \_ -- not whitespace and not underline
+$nonunder    = $nonwhiteFirst # ['"\;\$\_] -- not whitespace and not underline
 $commentChar = [\!\#]
 $under       = [\_]
 $dollar      = \$ 

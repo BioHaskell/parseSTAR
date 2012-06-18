@@ -3,8 +3,8 @@ module Main(main) where
 
 import Prelude
 import Data.ByteString.Char8 as BS
-import Tokens
-import StringUtil(simpleRead)
+import Data.STAR.Tokens as Tokens
+import Data.STAR.StringUtil(simpleRead)
 import System.Environment(getArgs)
 
 myScanTokens str = go (initState str)

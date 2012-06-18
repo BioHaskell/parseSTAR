@@ -4,8 +4,8 @@
 *.prof
 *.hp
 *.svg
-Tokens.hs
-Parser.hs
+Data/STAR/Tokens.hs
+Data/STAR/Parser.hs
 TestTokens
 Parser
 TestParserMonad

@@ -1,4 +1,4 @@
-module StringUtil(simpleRead, cheatConcat, (++), stringStep)
+module Data.STAR.StringUtil(simpleRead, cheatConcat, (++), stringStep)
 where
 
 import Prelude hiding((++))

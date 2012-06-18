@@ -1,5 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
-module Type(
+module Data.STAR.Type(
        STAR     (..),
        STARBlock(..),
        STAREntry(..),
