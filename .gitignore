@@ -1,14 +1,11 @@
 .*.sw[op]
 *.hi
 *.o
+*.p_o
+*.p_hi
 *.prof
 *.hp
 *.svg
-Data/STAR/Tokens.hs
-Data/STAR/Parser.hs
-TestTokens
-Parser
-TestParserMonad
 errs
 Setup.lhs
 *.hp
