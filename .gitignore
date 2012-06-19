@@ -10,5 +10,6 @@ TestTokens
 Parser
 TestParserMonad
 errs
+Setup.lhs
 *.hp
 .unison.*
