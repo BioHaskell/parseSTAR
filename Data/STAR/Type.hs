@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Data.STAR.Type(
        STAR     (..),
        STARBlock(..),
@@ -10,6 +11,7 @@ module Data.STAR.Type(
 import Data.ByteString.Char8 as BSC
 import Prelude hiding(String)
 import Control.DeepSeq
+import Data.Binary
 
 type String = BSC.ByteString
 
@@ -23,10 +25,27 @@ data STARBlock = Global { entries     :: ![STAREntry]
                         }
   deriving (Show, Eq)
 
+instance NFData BSC.ByteString
+  where
+    rnf bs = bs `seq` ()
+
+{-!
+
+deriving instance Binary STARBlock
+deriving instance Binary STAR
+deriving instance Binary STAREntry
+
+deriving instance NFData STARBlock
+deriving instance NFData STAR
+deriving instance NFData STAREntry
+ !-}
+
+{-
 instance NFData STARBlock
   where
     rnf (Global   es) = rnf es
     rnf (Data   k es) = rnf es
+-}
 
 type STARKey = String
 
@@ -43,12 +62,13 @@ data STAREntry = Entry { key          :: !String,
                        }
   deriving (Show, Eq)
 
+{-
 instance NFData STAREntry
   where
     rnf (Frame k vs) = rnf vs
     rnf (Loop    vs) = rnf vs
     rnf (Entry  _ _) = ()
     rnf (Ref    _ _) = ()
-
+-}
 
 
