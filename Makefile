@@ -7,6 +7,9 @@ ALEXFLAGS=--ghc --template=alex/
 HAPPYFLAGS=--ghc --strict #--decode
 #HAPPYFLAGS=--glr
 
+test: test/TestConverter
+	test/TestConverter +RTS -h -Pa -xc -RTS largest.str largest.test
+
 test2: test/TestParser
 	test/TestParser +RTS -hy -Pa -xc -RTS test3.str >/dev/null
 
@@ -22,6 +25,9 @@ test_parser: test/TestParser
 	test/TestParser +RTS ${RTSFLAGS} -RTS test.str
 
 test/TestParser: test/TestParser.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi
+	ghc $(GHCFLAGS) $<
+
+test/TestConverter: test/TestConverter.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi Data/STAR/Type.hi
 	ghc $(GHCFLAGS) $<
 
 test/TestTokens: test/TestTokens.hs Data/STAR/Tokens.hi
