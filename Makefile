@@ -7,10 +7,10 @@ ALEXFLAGS=--ghc --template=alex/
 HAPPYFLAGS=--ghc --strict #--decode
 #HAPPYFLAGS=--glr
 
-test_cs: ChemShifts
-	./ChemShifts smallest.str smallest.cs +RTS -H2G -A6M
+test_cs: test/TestChemShifts
+	test/TestChemShifts smallest.str smallest.cs +RTS -H2G -A6M
 
-ChemShifts: ChemShifts.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs
+test/TestChemShifts: test/TestChemShifts.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs
 	ghc --make -rtsopts $<
 
 test: test/TestConverter

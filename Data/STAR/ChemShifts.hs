@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
-module Main(main)
+module Data.STAR.ChemShifts(ChemShift(..), extractChemShifts, parse)
 where
 
 import Prelude hiding(String)
@@ -9,9 +9,6 @@ import Data.STAR.Parser(parseFile)
 import Data.STAR.Type
 import Data.ByteString.Nums.Careless.Float as F
 import Data.ByteString.Nums.Careless.Int   as I
-import System.Environment(getArgs)
-import Control.Monad(forM_)
-import System.IO(hPrint, stderr)
 import Data.Binary
 
 data ChemShift = ChemShift { cs_id     :: Int,
@@ -125,11 +122,12 @@ save_assigned_chem_shift_list_1
       2773 . 1 1 241 241 GLU N    N 15 118.823 0.172 . 1 . . . 241 GLU N    . c16678_2ksy 1 
 -}
 
-main = do [input, output] <- getArgs
-          dat <- parseFile input
-          case dat of
-            Left  err    -> hPrint stderr $ err
-            Right parsed -> Data.Binary.encodeFile output $ extractChemShifts parsed
+parse input = do dat <- Data.STAR.Parser.parseFile input
+                 return $ case dat of
+                            Right parsed -> Right $ extractChemShifts parsed
+                            Left  e      -> Left e
+ 
+
           
           
 
