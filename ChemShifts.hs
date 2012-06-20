@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Main(main)
 where
 
@@ -11,6 +12,7 @@ import Data.ByteString.Nums.Careless.Int   as I
 import System.Environment(getArgs)
 import Control.Monad(forM_)
 import System.IO(hPrint, stderr)
+import Data.Binary
 
 data ChemShift = ChemShift { cs_id     :: Int,
                              seq_id    :: Int,
@@ -21,6 +23,10 @@ data ChemShift = ChemShift { cs_id     :: Int,
                              entry_id  :: String
                            }
   deriving (Eq, Ord, Show)
+
+{-!
+deriving instance Binary ChemShift
+!-}
                              
 extractChemShifts (STAR l) = concatMap extract' l
   where
@@ -119,9 +125,11 @@ save_assigned_chem_shift_list_1
       2773 . 1 1 241 241 GLU N    N 15 118.823 0.172 . 1 . . . 241 GLU N    . c16678_2ksy 1 
 -}
 
-main = do fnames <- getArgs
-          forM_ fnames (\fname -> do dat <- parseFile fname
-                                     case dat of
-                                       Left  err    -> hPrint stderr $ err
-                                       Right parsed -> print $ extractChemShifts parsed)
+main = do [input, output] <- getArgs
+          dat <- parseFile input
+          case dat of
+            Left  err    -> hPrint stderr $ err
+            Right parsed -> Data.Binary.encodeFile output $ extractChemShifts parsed
+          
+          
 
