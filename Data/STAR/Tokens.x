@@ -89,8 +89,8 @@ parseThen = (>>=)
 
 unParserT = id
 
-parseError msg = do ((AlexPn l c _, _, _), state) <- get
-                    throwError $ ParseError l c state msg
+parseError msg = do ((AlexPn byte line column, _, _), state) <- get
+                    throwError $ ParseError line column state msg
 
 parseReturn = return
 
