@@ -30,8 +30,8 @@ extractChemShifts (STAR l) = concatMap extract' l
 chemShiftFrame (Frame name elts) | "assigned_chem_shift_list_" `BSC.isPrefixOf` name = concatMap chemShiftLoop elts
 chemShiftFrame _                                                                     = []
 
-chemShiftLoop (Loop elts) = map extractChemShift elts
-chemShiftLoop _           = []
+chemShiftLoop (Loop elts@(((Entry e v:_):_))) | "Atom_chem_shift" `BSC.isPrefixOf` e = map extractChemShift elts
+chemShiftLoop _                                                        = []
 
 emptyChemShift = ChemShift { cs_id     = (-1),
                              seq_id    = (-1),
@@ -61,10 +61,18 @@ compose = foldl apply
     apply e f = f e
 
 extractChemShift :: [STAREntry] -> ChemShift
-extractChemShift entries = entry -- TODO: sanity check (isFilledChemShift)
+extractChemShift entries = if isFilledChemShift entry
+                             then entry
+                             else error $ "Cannot fill entry from: " ++ show entries
   where
-    entryUpdate (Entry "Atom_chem_shift.Seq_ID" v) cs = cs{seq_id = I.int v}
-    entryUpdate _                                  cs = cs -- nothing changed
+    entryUpdate (Entry "Atom_chem_shift.ID"                  v) cs = cs{ cs_id     = I.int v   }
+    entryUpdate (Entry "Atom_chem_shift.Seq_ID"              v) cs = cs{ seq_id    = I.int v   }
+    entryUpdate (Entry "Atom_chem_shift.Atom_type"           v) cs = cs{ atom_type = v         } -- TODO: hashed string?
+    entryUpdate (Entry "Atom_chem_shift.Atom_isotope_number" v) cs = cs{ isotope   = I.int v   }
+    entryUpdate (Entry "Atom_chem_shift.Val"                 v) cs = cs{ chemshift = F.float v }
+    entryUpdate (Entry "Atom_chem_shift.Val_err"             v) cs = cs{ sigma     = F.float v }
+    entryUpdate (Entry "Atom_chem_shift.Entry_ID"            v) cs = cs{ entry_id  = v         }
+    entryUpdate _                                               cs = cs -- nothing changed
     updates :: [ChemShift -> ChemShift] = map entryUpdate entries
     entry :: ChemShift = compose emptyChemShift updates
 
