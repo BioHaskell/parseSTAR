@@ -10,4 +10,4 @@ maintainer:          mgajda@gwdg.de
 build-depends:       base
 build-type:          Simple
 ghc-options:         
-Depends: bytestring-show, mtl, base, alex, happy, binary
+Depends: bytestring-show, mtl, base, alex, happy, binary, bytestring-nums

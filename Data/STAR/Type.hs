@@ -58,7 +58,7 @@ data STAREntry = Entry { key          :: !String,
                | Frame { key          :: !String,
                          frameEntries :: ![STAREntry]
                        }
-               | Loop  { table        :: ![STAREntry]
+               | Loop  { table        :: ![[STAREntry]]
                        }
   deriving (Show, Eq)
 

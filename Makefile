@@ -7,6 +7,12 @@ ALEXFLAGS=--ghc --template=alex/
 HAPPYFLAGS=--ghc --strict #--decode
 #HAPPYFLAGS=--glr
 
+test_cs: ChemShifts
+	./ChemShifts smallest.str +RTS -H2G -A6M
+
+ChemShifts: ChemShifts.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs
+	ghc --make -rtsopts $<
+
 test: test/TestConverter
 	test/TestConverter +RTS -h -Pa -xc -RTS largest.str largest.test
 
@@ -48,3 +54,5 @@ Data/STAR/Parser.hs: Data/STAR/Parser.y
 
 clean:
 	rm -f `cat .gitignore`
+	(cd Data/STAR; rm -f `cat .gitignore`)
+	(cd test; rm -f `cat .gitignore`)

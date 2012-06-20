@@ -101,22 +101,24 @@ data STARStruct = SText Type.String -- keep position for matchTypesValues error 
   deriving (Show,Eq)
 
 matchTypesValues  :: [STARType] -> [STARStruct] -> Type.STAREntry
-matchTypesValues !ts !ss = matchTypesValues' ts ts ss [] finish
+matchTypesValues !ts !ss = matchTypesValues' ts ts ss [] [] finish
   where
-    finish entries [] = Type.Loop $ Prelude.reverse entries
+    finish :: [[Type.STAREntry]] -> [STARStruct] -> Type.STAREntry
+    finish entries [] = Type.Loop entries
 
-matchTypesValues' :: [STARType] -> [STARType] -> [STARStruct] -> [Type.STAREntry] -> ([Type.STAREntry] -> [STARStruct] -> a) -> a
-matchTypesValues' (TSimple t:ts)   tts (SText  s:ss) !acc !cont = matchTypesValues' ts  tts ss (Type.Entry t s:acc) cont
-matchTypesValues' (TSimple t:ts)   tts (SRef   s:ss) !acc !cont = matchTypesValues' ts  tts ss (Type.Ref   t s:acc) cont
-matchTypesValues' (TComplex tc:ts) tts ss            !acc !cont = matchTypesValues' tc  tc  ss []                   loopCont
+matchTypesValues' :: [STARType] -> [STARType] -> [STARStruct] -> [[Type.STAREntry]] -> [Type.STAREntry] -> ([[Type.STAREntry]] -> [STARStruct] -> a) -> a
+matchTypesValues' (TSimple  t :ts) tts (SText  s:ss) !acc1 !acc2 !cont = matchTypesValues' ts  tts ss acc1 (Type.Entry t s:acc2) cont
+matchTypesValues' (TSimple  t :ts) tts (SRef   s:ss) !acc1 !acc2 !cont = matchTypesValues' ts  tts ss acc1 (Type.Ref   t s:acc2) cont
+matchTypesValues' (TComplex tc:ts) tts ss            !acc1 !acc2 !cont = matchTypesValues' tc  tc  ss []   []                    loopCont
   where
-    loopCont es sn = matchTypesValues' ts tts sn (Type.Loop (Prelude.reverse es):acc) cont
-matchTypesValues' []               tts (SStop   :ss) !acc !cont = cont acc ss
-matchTypesValues' []               tts ss            !acc !cont = matchTypesValues' tts tts ss acc                  cont
-matchTypesValues' (t:_)            _   (s:ss)        !acc !cont = error $ Prelude.concat ["Can't match declared ",
-                                                                                          show t,
-                                                                                          " and actual ",
-                                                                                          show s]
+    --loopCont :: [Type.STAREntry] -> [STARStruct] -> a
+    loopCont es sn = matchTypesValues' ts tts sn acc1 (Type.Loop es:acc2) cont
+matchTypesValues' []               tts (SStop   :ss) !acc1 !acc2 !cont = cont (Prelude.reverse (Prelude.reverse acc2:acc1)) ss
+matchTypesValues' []               tts ss            !acc1 !acc2 !cont = matchTypesValues' tts tts ss (Prelude.reverse acc2:acc1) [] cont
+matchTypesValues' (t          :_ ) _   (s       :ss) !acc1 !acc2 !cont = error $ Prelude.concat ["Can't match declared ",
+                                                                                                 show t,
+                                                                                                 " and actual ",
+                                                                                                 show s]
 
 failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ show tok]
 
@@ -129,7 +131,7 @@ parseFile fname = do r <- simpleRead fname
                                                                                              ":", BSC.unpack s,
                                                                                              "(lexer state is ", show st, ")"]
                                                                
-                       Right result                       -> return $ Right result
+                       Right result                       -> return $ Right $ Type.STAR result
 
 
 }
