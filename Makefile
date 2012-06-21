@@ -10,7 +10,7 @@ HAPPYFLAGS=--ghc --strict #--decode
 test_cs: test/TestChemShifts
 	test/TestChemShifts smallest.str smallest.cs +RTS -H2G -A6M
 
-test/TestChemShifts: test/TestChemShifts.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs
+test/TestChemShifts: test/TestChemShifts.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/ChemShifts.hs
 	ghc --make -rtsopts $<
 
 test: test/TestConverter

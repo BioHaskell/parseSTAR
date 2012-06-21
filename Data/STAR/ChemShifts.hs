@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveDataTypeable #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Data.STAR.ChemShifts(ChemShift(..), extractChemShifts, parse)
 where
@@ -9,8 +9,12 @@ import Data.STAR.Parser(parseFile)
 import Data.STAR.Type
 import Data.ByteString.Nums.Careless.Float as F
 import Data.ByteString.Nums.Careless.Int   as I
-import Data.Binary
+import Data.Binary(Binary(..))
+import qualified Data.Binary        as B
+--import qualified Data.Binary.Shared as S
 import Control.DeepSeq(NFData(..))
+import Data.Typeable
+import Control.Monad.Trans (lift)
 
 data ChemShift = ChemShift { cs_id     :: Int,
                              seq_id    :: Int,
@@ -20,13 +24,43 @@ data ChemShift = ChemShift { cs_id     :: Int,
                              sigma     :: Float,
                              entry_id  :: String
                            }
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Typeable)
+
+{-
+instance S.BinaryShared Float
+  where get = lift B.get
+        put = lift . B.put 
+
+instance S.BinaryShared ChemShift
+  where get    = S.getShared (do v_cs_id     <- S.get
+                                 v_seq_id    <- S.get
+                                 v_atom_type <- S.get
+                                 v_isotope   <- S.get
+                                 v_chemshift <- S.get
+                                 v_sigma     <- S.get
+                                 v_entry_id  <- S.get
+                                 return $ ChemShift { cs_id     = v_cs_id    ,
+                                                      seq_id    = v_seq_id   ,
+                                                      atom_type = v_atom_type,
+                                                      isotope   = v_isotope  ,
+                                                      chemshift = v_chemshift,
+                                                      sigma     = v_sigma    ,
+                                                      entry_id  = v_entry_id })
+        put    = S.putShared (\cs -> do S.put . cs_id     $ cs
+                                        S.put . seq_id    $ cs
+                                        S.put . atom_type $ cs
+                                        S.put . isotope   $ cs
+                                        S.put . chemshift $ cs
+                                        S.put . sigma     $ cs
+                                        S.put . entry_id  $ cs)
+-}
 
 {-!
-deriving instance Binary   ChemShift
-deriving instance NFData   ChemShift
+deriving instance Binary ChemShift
+deriving instance NFData ChemShift
 !-}
-                             
+
+
 extractChemShifts (STAR l) = concatMap extract' l
   where
     extract' (Global l) = []
@@ -128,8 +162,3 @@ parse input = do dat <- Data.STAR.Parser.parseFile input
                  return $ case dat of
                             Right parsed -> Right $ extractChemShifts parsed
                             Left  e      -> Left e
- 
-
-          
-          
-
