@@ -10,6 +10,7 @@ import Data.STAR.Type
 import Data.ByteString.Nums.Careless.Float as F
 import Data.ByteString.Nums.Careless.Int   as I
 import Data.Binary
+import Control.DeepSeq(NFData(..))
 
 data ChemShift = ChemShift { cs_id     :: Int,
                              seq_id    :: Int,
@@ -22,7 +23,8 @@ data ChemShift = ChemShift { cs_id     :: Int,
   deriving (Eq, Ord, Show)
 
 {-!
-deriving instance Binary ChemShift
+deriving instance Binary   ChemShift
+deriving instance NFData   ChemShift
 !-}
                              
 extractChemShifts (STAR l) = concatMap extract' l

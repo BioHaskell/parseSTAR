@@ -51,23 +51,25 @@ $doubleQuote = [\"]
 $nonsemi     = [^\;]
 
 tokens :-
-<0>          $white +                                    ;
-<0>          $commentChar .* $eoln                       ;
-<0>          $under $nonspecial*   / $white              { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0         ) } 
-<0>          "save_" $nonspecial+                        { (\p s -> Save . drop (BSC.length "save_")   $ s , 0         ) }
-<0>          "save_"   / $white                          { (\p s -> EndSave                                , 0         ) }
-<0>          "stop_"                                     { (\p s -> EndLoop                                , 0         ) }
-<0>          "loop_"                                     { (\p s -> Loop                                   , 0         ) }
-<0>          "global_"                                   { (\p s -> Global                                 , 0         ) }
-<0>          "data_" $nonwhite+ / $white                 { (\p s -> Data . chopFront "data_"           $ s , 0         ) }
-<0>          $dollar $nonwhite+ / $white                 { (\p s -> Ref  . chopFront "$"               $ s , 0         ) }
-<0>          $singleQuote [^\n]+ $singleQuote / $white   { (\p s -> Text . chop      "\'"              $ s , 0         ) }
-<0>          $doubleQuote [^\n]+ $doubleQuote / $white   { (\p s -> Text . chop      "\""              $ s , 0         ) }
-<0>          $nonunder $nonspecial* / $white             { (\p s -> Text s                                 , 0         ) }
-<0>          ^$semi $eoln                                { (\p s -> SemiStart $ stringStep s   2           , semistring) }
-<semistring> ^$semi                                      { (\p s -> SemiEnd   $ stringStep s (-2)          , 0         ) }
-<semistring> ^[^\;] .* $eoln                             ;
-<semistring> ^ $eoln                                     ;
+<0>          $white +                                             ;
+<0>          $commentChar .* $eoln                                ;
+<0>          $under $nonspecial*   / $white                       { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0         ) } 
+<0>          "save_" $nonspecial+                                 { (\p s -> Save . drop (BSC.length "save_")   $ s , 0         ) }
+<0>          "save_"   / $white                                   { (\p s -> EndSave                                , 0         ) }
+<0>          "stop_"                                              { (\p s -> EndLoop                                , 0         ) }
+<0>          "loop_"                                              { (\p s -> Loop                                   , 0         ) }
+<0>          "global_"                                            { (\p s -> Global                                 , 0         ) }
+<0>          "data_" $nonwhite+ / $white                          { (\p s -> Data . chopFront "data_"           $ s , 0         ) }
+<0>          $dollar $nonwhite+ / $white                          { (\p s -> Ref  . chopFront "$"               $ s , 0         ) }
+<0>          $nonunder $nonwhite* / $white                      { (\p s -> Text s                                 , 0         ) }
+
+<0>          $white ^ $singleQuote [^\n]+ $singleQuote / $white   { (\p s -> Text . chop      "\'"              $ s , 0         ) }
+<0>          $white ^ $doubleQuote [^\n]+ $doubleQuote / $white   { (\p s -> Text . chop      "\""              $ s , 0         ) }
+
+<0>          ^$semi $eoln                                         { (\p s -> SemiStart $ stringStep s   2           , semistring) }
+<semistring> ^$semi                                               { (\p s -> SemiEnd   $ stringStep s (-2)          , 0         ) }
+<semistring> ^[^\;] .* $eoln                                      ;
+<semistring> ^ $eoln                                              ;
 {
 
 data ParseError = ParseError Int Int Int String
