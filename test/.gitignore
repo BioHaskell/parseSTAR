@@ -1,3 +1,5 @@
 TestTokens
 TestParser
 TestConverter
+TestChemShifts
+TestCoords
