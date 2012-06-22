@@ -49,27 +49,37 @@ $noneolnsemi   = [^\n\;]
 $singleQuote   = [\']
 $doubleQuote   = [\"]
 $nonsemi       = [^\;]
+$nonsingle     = ~ [\']
+$nondouble     = ~ [\"]
 
 tokens :-
 <0>          $white +                                                        ;
 <0>          $commentChar .* $eoln                                           ;
-<0>          $under $nonspecial*   / $white                                  { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0         ) } 
-<0>          "save_" $nonwhite+                                              { (\p s -> Save . drop (BSC.length "save_")   $ s , 0         ) }
-<0>          "save_"   / $white                                              { (\p s -> EndSave                                , 0         ) }
-<0>          "stop_"                                                         { (\p s -> EndLoop                                , 0         ) }
-<0>          "loop_"                                                         { (\p s -> Loop                                   , 0         ) }
-<0>          "global_"                                                       { (\p s -> Global                                 , 0         ) }
-<0>          "data_" $nonwhite+ / $white                                     { (\p s -> chopFront "data_" s Data               , 0         ) }
-<0>          $dollar $nonwhite+ / $white                                     { (\p s -> chopFront "$"     s Ref                , 0         ) }
-<0>          $nonunder $nonwhite* / $white                                   { (\p s -> Text s                                 , 0         ) }
+<0>          $under $nonspecial*   / $white                                  { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0           ) } 
+<0>          "save_" $nonwhite+                                              { (\p s -> Save . drop (BSC.length "save_")   $ s , 0           ) }
+<0>          "save_"   / $white                                              { (\p s -> EndSave                                , 0           ) }
+<0>          "stop_"                                                         { (\p s -> EndLoop                                , 0           ) }
+<0>          "loop_"                                                         { (\p s -> Loop                                   , 0           ) }
+<0>          "global_"                                                       { (\p s -> Global                                 , 0           ) }
+<0>          "data_" $nonwhite+ / $white                                     { (\p s -> chopFront "data_" s Data               , 0           ) }
+<0>          $dollar $nonwhite+ / $white                                     { (\p s -> chopFront "$"     s Ref                , 0           ) }
+<0>          $nonunder $nonwhite* / $white                                   { (\p s -> Text s                                 , 0           ) }
 
-<0>          $white ^ $singleQuote [^\n $singleQuote]+ $singleQuote / $white { (\p s -> chop "\'" s Text                       , 0         ) }
-<0>          $white ^ $doubleQuote [^\n $doubleQuote]+ $doubleQuote / $white { (\p s -> chop "\"" s Text                       , 0         ) }
+<0>          $white ^ $singleQuote                                           { (\p s -> SemiStart $ stringStep s 1             , squotstring ) }
+<0>          $white ^ $doubleQuote                                           { (\p s -> SemiStart $ stringStep s 1             , dquotstring ) }
 
-<0>          ^$semi $eoln                                                    { (\p s -> SemiStart $ stringStep s   2           , semistring) }
-<semistring> ^$semi                                                          { (\p s -> SemiEnd   $ stringStep s (-2)          , 0         ) }
+<0>          ^$semi $eoln                                                    { (\p s -> SemiStart $ stringStep s   2           , semistring  ) }
+<semistring> ^$semi                                                          { (\p s -> SemiEnd   $ stringStep s (-2)          , 0           ) }
 <semistring> ^[^\;] .* $eoln                                                 ;
 <semistring> ^ $eoln                                                         ;
+
+<squotstring> $singleQuote / $nonwhite                                       ;
+<squotstring> $nonsingle                                                     ;
+<squotstring> $singleQuote / $white                                          { (\p s -> SemiEnd   $ stringStep s (-1)          , 0           ) }
+
+<dquotstring> $doubleQuote / $nonwhite                                       ;
+<dquotstring> $nondouble                                                     ;
+<dquotstring> $doubleQuote / $white                                          { (\p s -> SemiEnd   $ stringStep s (-1)          , 0           ) }
 {
 
 data ParseError = ParseError Int Int Int String
@@ -139,15 +149,15 @@ data Token =
         Err       !String
   deriving (Eq,Show)
 
-tokenValue (Name      s) = s
-tokenValue (Text      s) = s
-tokenValue (Comment   s) = s
-tokenValue (Save      s) = s
-tokenValue (Data      s) = s
-tokenValue (Ref       s) = s
-tokenValue (SemiEnd   s) = s
-tokenValue (SemiStart s) = s
-tokenValue _             = error "Wrong token"
+tokenValue (Name       s) = s
+tokenValue (Text       s) = s
+tokenValue (Comment    s) = s
+tokenValue (Save       s) = s
+tokenValue (Data       s) = s
+tokenValue (Ref        s) = s
+tokenValue (SemiEnd    s) = s
+tokenValue (SemiStart  s) = s
+tokenValue _              = error "Wrong token"
 
 initState input = ((alexStartPos, '\n', input), 0)
 
