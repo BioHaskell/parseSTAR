@@ -35,7 +35,7 @@ import Data.STAR.StringUtil(stringStep)
 
 $white         = [ \t \n \f \v \r \  ]
 $nonwhiteFirst = ~ $white # [ \# \! ] -- non-whitespace
-$nonwhite      = ~ $white -- non-whitespace
+$nonwhite      = [ . \xfeff ] # $white -- non-whitespace
 $nonspecial    = $nonwhite # ['"\;\$] -- not whitespace and not underline
 $nonspec       = [a-zA-Z0-9_] -- not whitespace and not underline
 $nonunder      = $nonwhiteFirst # ['"\;\$\_] -- not whitespace and not underline
@@ -51,25 +51,25 @@ $doubleQuote   = [\"]
 $nonsemi       = [^\;]
 
 tokens :-
-<0>          $white +                                             ;
-<0>          $commentChar .* $eoln                                ;
-<0>          $under $nonspecial*   / $white                       { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0         ) } 
-<0>          "save_" $nonwhite+                                   { (\p s -> Save . drop (BSC.length "save_")   $ s , 0         ) }
-<0>          "save_"   / $white                                   { (\p s -> EndSave                                , 0         ) }
-<0>          "stop_"                                              { (\p s -> EndLoop                                , 0         ) }
-<0>          "loop_"                                              { (\p s -> Loop                                   , 0         ) }
-<0>          "global_"                                            { (\p s -> Global                                 , 0         ) }
-<0>          "data_" $nonwhite+ / $white                          { (\p s -> chopFront "data_" s Data               , 0         ) }
-<0>          $dollar $nonwhite+ / $white                          { (\p s -> chopFront "$"     s Ref                , 0         ) }
-<0>          $nonunder $nonwhite* / $white                        { (\p s -> Text s                                 , 0         ) }
+<0>          $white +                                                        ;
+<0>          $commentChar .* $eoln                                           ;
+<0>          $under $nonspecial*   / $white                                  { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0         ) } 
+<0>          "save_" $nonwhite+                                              { (\p s -> Save . drop (BSC.length "save_")   $ s , 0         ) }
+<0>          "save_"   / $white                                              { (\p s -> EndSave                                , 0         ) }
+<0>          "stop_"                                                         { (\p s -> EndLoop                                , 0         ) }
+<0>          "loop_"                                                         { (\p s -> Loop                                   , 0         ) }
+<0>          "global_"                                                       { (\p s -> Global                                 , 0         ) }
+<0>          "data_" $nonwhite+ / $white                                     { (\p s -> chopFront "data_" s Data               , 0         ) }
+<0>          $dollar $nonwhite+ / $white                                     { (\p s -> chopFront "$"     s Ref                , 0         ) }
+<0>          $nonunder $nonwhite* / $white                                   { (\p s -> Text s                                 , 0         ) }
 
-<0>          $white ^ $singleQuote [^\n]+ $singleQuote / $white   { (\p s -> chop "\'" s Text                       , 0         ) }
-<0>          $white ^ $doubleQuote [^\n]+ $doubleQuote / $white   { (\p s -> chop "\"" s Text                       , 0         ) }
+<0>          $white ^ $singleQuote [^\n $singleQuote]+ $singleQuote / $white { (\p s -> chop "\'" s Text                       , 0         ) }
+<0>          $white ^ $doubleQuote [^\n $doubleQuote]+ $doubleQuote / $white { (\p s -> chop "\"" s Text                       , 0         ) }
 
-<0>          ^$semi $eoln                                         { (\p s -> SemiStart $ stringStep s   2           , semistring) }
-<semistring> ^$semi                                               { (\p s -> SemiEnd   $ stringStep s (-2)          , 0         ) }
-<semistring> ^[^\;] .* $eoln                                      ;
-<semistring> ^ $eoln                                              ;
+<0>          ^$semi $eoln                                                    { (\p s -> SemiStart $ stringStep s   2           , semistring) }
+<semistring> ^$semi                                                          { (\p s -> SemiEnd   $ stringStep s (-2)          , 0         ) }
+<semistring> ^[^\;] .* $eoln                                                 ;
+<semistring> ^ $eoln                                                         ;
 {
 
 data ParseError = ParseError Int Int Int String
