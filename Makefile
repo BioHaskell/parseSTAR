@@ -33,6 +33,9 @@ test_parser: test/TestParser
 test/TestParser: test/TestParser.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi
 	ghc $(GHCFLAGS) $<
 
+test/TestCoords: test/TestCoords.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi
+	ghc $(GHCFLAGS) $<
+
 test/TestConverter: test/TestConverter.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi Data/STAR/Type.hi
 	ghc $(GHCFLAGS) $<
 

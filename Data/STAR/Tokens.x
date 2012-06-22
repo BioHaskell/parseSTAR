@@ -33,38 +33,38 @@ import Data.STAR.StringUtil(stringStep)
 
 %wrapper "posn-bytestring-strict"
 
-$white       = [ \t \n \f \v \r \  ]
+$white         = [ \t \n \f \v \r \  ]
 $nonwhiteFirst = ~ $white # [ \# \! ] -- non-whitespace
-$nonwhite    = ~ $white -- non-whitespace
-$nonspecial  = $nonwhite # ['"\;\$] -- not whitespace and not underline
-$nonspec     = [a-zA-Z0-9_] -- not whitespace and not underline
-$nonunder    = $nonwhiteFirst # ['"\;\$\_] -- not whitespace and not underline
-$commentChar = [\!\#]
-$under       = [\_]
-$dollar      = \$ 
-$eoln        = \n
-$semi        = \;
-$noneoln     = [^\n]
-$noneolnsemi = [^\n\;]
-$singleQuote = [\']
-$doubleQuote = [\"]
-$nonsemi     = [^\;]
+$nonwhite      = ~ $white -- non-whitespace
+$nonspecial    = $nonwhite # ['"\;\$] -- not whitespace and not underline
+$nonspec       = [a-zA-Z0-9_] -- not whitespace and not underline
+$nonunder      = $nonwhiteFirst # ['"\;\$\_] -- not whitespace and not underline
+$commentChar   = [\!\#]
+$under         = [\_]
+$dollar        = \$ 
+$eoln          = \n
+$semi          = \;
+$noneoln       = [^\n]
+$noneolnsemi   = [^\n\;]
+$singleQuote   = [\']
+$doubleQuote   = [\"]
+$nonsemi       = [^\;]
 
 tokens :-
 <0>          $white +                                             ;
 <0>          $commentChar .* $eoln                                ;
 <0>          $under $nonspecial*   / $white                       { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0         ) } 
-<0>          "save_" $nonspecial+                                 { (\p s -> Save . drop (BSC.length "save_")   $ s , 0         ) }
+<0>          "save_" $nonwhite+                                   { (\p s -> Save . drop (BSC.length "save_")   $ s , 0         ) }
 <0>          "save_"   / $white                                   { (\p s -> EndSave                                , 0         ) }
 <0>          "stop_"                                              { (\p s -> EndLoop                                , 0         ) }
 <0>          "loop_"                                              { (\p s -> Loop                                   , 0         ) }
 <0>          "global_"                                            { (\p s -> Global                                 , 0         ) }
-<0>          "data_" $nonwhite+ / $white                          { (\p s -> Data . chopFront "data_"           $ s , 0         ) }
-<0>          $dollar $nonwhite+ / $white                          { (\p s -> Ref  . chopFront "$"               $ s , 0         ) }
-<0>          $nonunder $nonwhite* / $white                      { (\p s -> Text s                                 , 0         ) }
+<0>          "data_" $nonwhite+ / $white                          { (\p s -> chopFront "data_" s Data               , 0         ) }
+<0>          $dollar $nonwhite+ / $white                          { (\p s -> chopFront "$"     s Ref                , 0         ) }
+<0>          $nonunder $nonwhite* / $white                        { (\p s -> Text s                                 , 0         ) }
 
-<0>          $white ^ $singleQuote [^\n]+ $singleQuote / $white   { (\p s -> Text . chop      "\'"              $ s , 0         ) }
-<0>          $white ^ $doubleQuote [^\n]+ $doubleQuote / $white   { (\p s -> Text . chop      "\""              $ s , 0         ) }
+<0>          $white ^ $singleQuote [^\n]+ $singleQuote / $white   { (\p s -> chop "\'" s Text                       , 0         ) }
+<0>          $white ^ $doubleQuote [^\n]+ $doubleQuote / $white   { (\p s -> chop "\"" s Text                       , 0         ) }
 
 <0>          ^$semi $eoln                                         { (\p s -> SemiStart $ stringStep s   2           , semistring) }
 <semistring> ^$semi                                               { (\p s -> SemiEnd   $ stringStep s (-2)          , 0         ) }
@@ -100,45 +100,25 @@ instance Error ParseError
   where
     strMsg msg = ParseError (-1) (-1) (-1) (BSC.pack msg)
 
-chop :: String -> String -> String
-chop s = chopFront s . chopTail s
+chop :: String -> String -> (String -> Token) -> Token
+chop s arg cont = chopFront s arg $ \a -> chopTail s a cont 
 
-chopFront :: String -> String -> String
-chopFront s t | BSC.length s > BSC.length t                                     = error $ "Cannot chop " ++ show s ++ " from " ++ show t ++ "!"
-chopFront s t | (chopped, result) <- BSC.splitAt (BSC.length s) t               = if chopped == s
-                                                                                    then result
-                                                                                    else error ("Cannot chop " ++ show s ++
-                                                                                                " when prefix is " ++ show chopped ++ "!")
+bshow = BSC.pack . show
 
-chopTail :: String -> String -> String
-chopTail s t | BSC.length s > BSC.length t                                      = error $ "Cannot chop " ++ show s ++ " from " ++ show t ++ "!"
-chopTail s t | (result, chopped) <- BSC.splitAt (BSC.length t - BSC.length s) t = if chopped == s
-                                                                                    then result
-                                                                                    else error $ "Cannot chop " ++ show s ++ " when suffix is " ++ show chopped ++ "!"
+chopFront :: String -> String -> (String -> Token) -> Token
+chopFront s t cont | BSC.length s > BSC.length t                       = Err $ BSC.concat ["Cannot chop ", bshow s, " from ", bshow t, "!"]
+chopFront s t cont | (chopped, result) <- BSC.splitAt (BSC.length s) t = if chopped == s
+                                                                           then cont result
+                                                                           else Err $ BSC.concat ["Cannot chop ",      bshow s,
+                                                                                                  " when prefix is ", bshow chopped, "!"]
 
+chopTail :: String -> String -> (String -> Token) -> Token
+chopTail s t cont | BSC.length s > BSC.length t                                      = Err $ BSC.concat ["Cannot chop ", bshow s, " from ", bshow t, "!"]
+chopTail s t cont | (result, chopped) <- BSC.splitAt (BSC.length t - BSC.length s) t = if chopped == s
+                                                                                         then cont result
+                                                                                         else Err $ BSC.concat ["Cannot chop ",     bshow s,
+                                                                                                                " when suffix is ", bshow chopped, "!"]
 
-{-
-chopS :: String -> String -> String
-chopS s t              = chopS' s s t
-
-chopS' :: String -> String -> String -> String
-chopS' ""     s cs     = tailCutS s cs
-chopS' bbs s ccs | Just (b, bs) <- BSC.uncons bbs, Just (c, cs) <- BSC.uncons ccs = if b==c then chopS' bs s cs
-                                                                                            else error $ "Cannot chop: " ++ show b ++ " <> " ++ show c
-chopS' bs  s cs                                                                   = error $ "Cannot chop: " ++ show bs ++ " from " ++ show cs
-
-chop c ds | BSC.head ds == c = tailCut c $ BSC.tail ds
-chop _ ""                    = error "String to short to chop!"
-chop c s                     = error $ "Cannot chop boundary characters " ++ show c ++ " of " ++ show s ++ "!"
-
-tailCutS :: String -> String -> String
-tailCutS bs cs | BSC.length bs <= BSC.length cs + 1 = BSC.cons c             (tailCutS bs cs)
-tailCutS bs cs | BSC.head bs == BSC.head cs         = tailCutS (BSC.tail bs) (BSC.tail cs)
-tailCutS ""     ""                                  = ""
-tailCutS bs     cs                                  = error $ "tailCutS " ++ show bs ++ " vs " ++ show cs
-tailCut c d   | c == BSC.head d && BSC.length d == 1  = ""
-tailCut c bbs | Just (b, bs) <- bbs                   = BSC.cons b (tailCut c bs) -- TODO: make efficient
--}
 
 -- The token type:
 data Token =
@@ -188,7 +168,7 @@ getToken' ((), alexInputState) = scanForToken alexInputState
 
 scanForToken (alexInput, alexState) = case alexScan alexInput alexState of
                                         AlexEOF                                        -> (EOF, (alexInput, alexState))
-                                        AlexError i                                    -> (Err "lexical error", (alexInput, alexState))
+                                        AlexError i                                    -> (Err "lexer error", (alexInput, alexState))
                                         AlexSkip  !newAlexInput len                    -> scanForToken (newAlexInput, alexState)
                                         AlexToken !newAlexInput toklen (act, newState) -> let (pos, _, str) = alexInput
                                                                                               tokStr        = BSC.take (fromIntegral toklen) str
