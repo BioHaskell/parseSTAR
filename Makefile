@@ -7,6 +7,8 @@ ALEXFLAGS=--ghc --template=alex/
 HAPPYFLAGS=--ghc --strict #--decode
 #HAPPYFLAGS=--glr
 
+all: executables test_cs
+
 test_cs: test/TestChemShifts
 	test/TestChemShifts smallest.str smallest.cs +RTS -H2G -A6M
 
@@ -29,6 +31,8 @@ all_parser_tests: test/TestParser
 
 test_parser: test/TestParser
 	test/TestParser +RTS ${RTSFLAGS} -RTS test.str
+
+executables: test/TestParser test/TestCoords test/TestTokens test/TestChemShifts
 
 test/TestParser: test/TestParser.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi
 	ghc $(GHCFLAGS) $<
