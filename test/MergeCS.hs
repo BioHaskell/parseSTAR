@@ -11,8 +11,7 @@ import Control.DeepSeq(rnf)
 import Control.Exception
 
 robustDecode fname = ((do (r :: [ChemShift]) <- decodeFile fname
-                          return $! rnf r
-                          putStrLn $ "Success: " ++ fname
+                          r `seq` putStrLn $ "Success: " ++ fname
                           return r)
                        `Control.Exception.catch`
                       (\(e :: SomeException)-> do hPutStrLn stderr $ "Error in " ++ fname ++ ": " ++ show e
@@ -22,6 +21,6 @@ robustDecode fname = ((do (r :: [ChemShift]) <- decodeFile fname
 
 main = do args <- getArgs
           (lists :: [[ChemShift]]) <- forM args robustDecode
-          encodeFile "total.cs" (Prelude.concat lists)
+          encodeFile "total.cs" $ Prelude.concat lists
 
 

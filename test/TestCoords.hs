@@ -16,6 +16,7 @@ main = do [input, output] <- getArgs
             Left  err    -> do hPutStr   stderr $ "Error parsing " ++ input ++ ": "
                                hPutStrLn stderr $ err
                                exitFailure
-            Right parsed -> do Data.Binary.encodeFile output (parsed :: [Coord])
+            Right parsed -> do case output of
+                                 "-" -> print parsed
+                                 _   -> Data.Binary.encodeFile output (parsed :: [Coord])
                                exitSuccess
-                               --print parsed
