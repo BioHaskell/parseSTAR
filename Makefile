@@ -1,6 +1,6 @@
 #GHCFLAGS=-debug
-GHCFLAGS=-rtsopts -prof -auto-all +RTS -H2G -RTS
-#GHCFLAGS=-O3 -rtsopts +RTS -H2G -A1M -RTS
+#GHCFLAGS=-rtsopts -prof -auto-all +RTS -H2G -RTS
+GHCFLAGS=-O3 -rtsopts +RTS -H2G -A1M -RTS
 #RTSFLAGS=-xc -k512M
 RTSFLAGS=+RTS -k256M -H3G -A1M -s -RTS
 ALEXFLAGS=--ghc --template=alex/
