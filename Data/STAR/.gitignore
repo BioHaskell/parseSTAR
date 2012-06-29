@@ -1,2 +1,4 @@
 Tokens.hs
 Parser.hs
+*.hi
+*.o

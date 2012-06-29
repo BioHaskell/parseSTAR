@@ -32,7 +32,7 @@ all_parser_tests: test/TestParser
 test_parser: test/TestParser
 	test/TestParser +RTS ${RTSFLAGS} -RTS test.str
 
-executables: test/TestParser test/TestCoords test/TestTokens test/TestChemShifts
+executables: test/TestParser test/TestCoords test/TestTokens test/TestChemShifts test/MergeCoord test/MergeCS
 
 test/TestParser: test/TestParser.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi
 	ghc $(GHCFLAGS) $<
