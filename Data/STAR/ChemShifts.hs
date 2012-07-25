@@ -118,7 +118,7 @@ extractChemShift entries = if isFilledChemShift entry
     updates :: [ChemShift -> ChemShift] = map entryUpdate entries
     entry :: ChemShift = compose emptyChemShift updates
 
-
+--NOTE: for aminoacids atom with id "H" is "HN" in PDB nomenclature.
 {-
 save_assigned_chem_shift_list_1
 ...
