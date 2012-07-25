@@ -18,6 +18,7 @@ import Control.Monad.Trans (lift)
 
 data ChemShift = ChemShift { cs_id     :: Int,
                              seq_id    :: Int,
+                             atom_id   :: String,
                              atom_type :: String,
                              isotope   :: Int,
                              chemshift :: Float,
@@ -74,7 +75,8 @@ chemShiftLoop _                                                        = []
 
 emptyChemShift = ChemShift { cs_id     = (-1),
                              seq_id    = (-1),
-                             atom_type = "<UNKNOWN>",
+                             atom_id   = "<UNKNOWN ID>",
+                             atom_type = "<UNKNOWN TYPE>",
                              isotope   = (-1),
                              chemshift = (-999.999),
                              sigma     = (-999.999),
@@ -104,13 +106,14 @@ extractChemShift entries = if isFilledChemShift entry
                              then entry
                              else error $ "Cannot fill entry from: " ++ show entries
   where
-    entryUpdate (Entry "Atom_chem_shift.ID"                  v) cs = cs{ cs_id     = I.int v   }
-    entryUpdate (Entry "Atom_chem_shift.Seq_ID"              v) cs = cs{ seq_id    = I.int v   }
-    entryUpdate (Entry "Atom_chem_shift.Atom_type"           v) cs = cs{ atom_type = v         } -- TODO: hashed string?
-    entryUpdate (Entry "Atom_chem_shift.Atom_isotope_number" v) cs = cs{ isotope   = I.int v   }
-    entryUpdate (Entry "Atom_chem_shift.Val"                 v) cs = cs{ chemshift = F.float v }
-    entryUpdate (Entry "Atom_chem_shift.Val_err"             v) cs = cs{ sigma     = F.float v }
-    entryUpdate (Entry "Atom_chem_shift.Entry_ID"            v) cs = cs{ entry_id  = v         }
+    entryUpdate (Entry "Atom_chem_shift.ID"                  v) cs = cs { cs_id     = I.int v   }
+    entryUpdate (Entry "Atom_chem_shift.Seq_ID"              v) cs = cs { seq_id    = I.int v   }
+    entryUpdate (Entry "Atom_chem_shift.Atom_ID"             v) cs = cs { atom_id   = v         } -- TODO: hashed string?
+    entryUpdate (Entry "Atom_chem_shift.Atom_type"           v) cs = cs { atom_type = v         } -- TODO: hashed string?
+    entryUpdate (Entry "Atom_chem_shift.Atom_isotope_number" v) cs = cs { isotope   = I.int v   }
+    entryUpdate (Entry "Atom_chem_shift.Val"                 v) cs = cs { chemshift = F.float v }
+    entryUpdate (Entry "Atom_chem_shift.Val_err"             v) cs = cs { sigma     = F.float v }
+    entryUpdate (Entry "Atom_chem_shift.Entry_ID"            v) cs = cs { entry_id  = v         }
     entryUpdate _                                               cs = cs -- nothing changed
     updates :: [ChemShift -> ChemShift] = map entryUpdate entries
     entry :: ChemShift = compose emptyChemShift updates

@@ -1,10 +1,11 @@
 #GHCFLAGS=-debug
 #GHCFLAGS=-rtsopts -prof -auto-all +RTS -H2G -RTS
 GHCFLAGS=-O3 -rtsopts +RTS -H2G -A1M -RTS
+GHCFLAGS=-prof -auto-all -rtsopts +RTS -H2G -A1M -RTS
 #RTSFLAGS=-xc -k512M
 RTSFLAGS=+RTS -k256M -H3G -A1M -s -RTS
 ALEXFLAGS=--ghc --template=alex/
-HAPPYFLAGS=--ghc --strict #--decode
+HAPPYFLAGS=--ghc #--strict #--decode
 #HAPPYFLAGS=--glr
 
 all: executables test_cs
@@ -13,7 +14,7 @@ test_cs: test/TestChemShifts
 	test/TestChemShifts smallest.str smallest.cs +RTS -H2G -A6M
 
 test/TestChemShifts: test/TestChemShifts.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/ChemShifts.hs
-	ghc --make -rtsopts $<
+	ghc $(GHCFLAGS) --make -rtsopts $<
 
 test: test/TestConverter
 	test/TestConverter +RTS -h -Pa -xc -RTS largest.str largest.test
