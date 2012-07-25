@@ -1,14 +1,17 @@
 #GHCFLAGS=-debug
 #GHCFLAGS=-rtsopts -prof -auto-all +RTS -H2G -RTS
-GHCFLAGS=-O3 -rtsopts +RTS -H2G -A1M -RTS
+#GHCFLAGS=-O3 -rtsopts +RTS -H2G -A1M -RTS
 GHCFLAGS=-prof -auto-all -rtsopts +RTS -H2G -A1M -RTS
 #RTSFLAGS=-xc -k512M
 RTSFLAGS=+RTS -k256M -H3G -A1M -s -RTS
 ALEXFLAGS=--ghc --template=alex/
-HAPPYFLAGS=--ghc #--strict #--decode
+HAPPYFLAGS=--ghc --strict #--decode
 #HAPPYFLAGS=--glr
 
 all: executables test_cs
+
+cabal: Data/STAR/Tokens.hs
+	cabal install
 
 test_cs: test/TestChemShifts
 	test/TestChemShifts smallest.str smallest.cs +RTS -H2G -A6M
@@ -47,12 +50,12 @@ test/TestConverter: test/TestConverter.hs Data/STAR/Parser.hs Data/STAR/Tokens.h
 test/TestTokens: test/TestTokens.hs Data/STAR/Tokens.hi
 	ghc $(GHCFLAGS) $<
 
-Data/STAR/Tokens.hs: Data/STAR/Tokens.x
-
 Data/STAR/Parser.hs: Data/STAR/Parser.y
 
-%.hs: %.x
+#Data/STAR/Tokens.hs: Data/STAR/Tokens.x
+Data/STAR/Tokens.hs: preSrc/Tokens.x
 	alex $(ALEXFLAGS) $<
+	# We do it because cabal is lame and doesn't allow custom Alex arguments in .cabal.
 
 %.o %.hi: %.hs
 	ghc $(GHCFLAGS) $<

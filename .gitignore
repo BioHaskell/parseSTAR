@@ -12,3 +12,7 @@ cmds_all_bmrb.sh
 *.hp
 .unison.*
 ReadAll
+*.cs
+*.crd
+*.cs.gz
+*.crd.gz
