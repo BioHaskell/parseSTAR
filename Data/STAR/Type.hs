@@ -4,8 +4,8 @@ module Data.STAR.Type(
        STAR     (..),
        STARBlock(..),
        STAREntry(..),
-       STARKey,
-       String
+       STARKey(..),
+       String(..)
 ) where
 
 import Data.ByteString.Char8 as BSC
