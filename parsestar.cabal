@@ -19,3 +19,20 @@ library
   build-depends:       array, base, mtl, binary, bytestring, bytestring-mmap, bytestring-show, bytestring-nums, deepseq, derive
   build-tools:         happy
   --build-tools:         alex, happy
+
+executable  PrintCSTypes
+  main-is: test/PrintCSTypes.hs
+  --build-depends: parsestar, base, deepseq
+  build-depends: parsestar, base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array, containers
+  default-language:    Haskell2010
+
+executable  MergeCoord
+  main-is: test/MergeCoord.hs
+  build-depends: parsestar, base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array
+  default-language:    Haskell2010
+
+executable TestChemShifts
+  main-is: test/MergeCoord.hs
+  --build-depends: parsestar, base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array, containers
+  build-depends: parsestar, base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array
+  default-language:    Haskell2010
