@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveDataTypeable, BangPatterns #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Data.STAR.ChemShifts(ChemShift(..), extractChemShifts, parse)
 where
@@ -16,15 +16,15 @@ import Control.DeepSeq(NFData(..))
 import Data.Typeable
 import Control.Monad.Trans (lift)
 
-data ChemShift = ChemShift { cs_id     :: Int,
-                             seq_id    :: Int,
-                             comp_id   :: String,
-                             atom_id   :: String,
-                             atom_type :: String,
-                             isotope   :: Int,
-                             chemshift :: Float,
-                             sigma     :: Float,
-                             entry_id  :: String
+data ChemShift = ChemShift { cs_id     :: !Int,
+                             seq_id    :: !Int,
+                             comp_id   :: !String,
+                             atom_id   :: !String,
+                             atom_type :: !String,
+                             isotope   :: !Int,
+                             chemshift :: !Float,
+                             sigma     :: !Float,
+                             entry_id  :: !String
                            }
   deriving (Eq, Ord, Show, Typeable)
 

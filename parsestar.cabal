@@ -34,7 +34,6 @@ executable  MergeCoord
 
 executable TestChemShifts
   main-is: test/MergeCoord.hs
-  --build-depends: parsestar, base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array, containers
   build-depends: base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array
   default-language:    Haskell2010
   other-modules:       Data.STAR.StringUtil Data.STAR.Tokens Data.STAR Data.STAR.Type Data.STAR.ChemShifts Data.STAR.Coords Data.STAR.Parser

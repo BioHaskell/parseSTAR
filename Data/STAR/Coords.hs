@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, BangPatterns #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Data.STAR.Coords(Coord(..), extractCoords, parse)
 where
@@ -12,18 +12,18 @@ import Data.ByteString.Nums.Careless.Int   as I
 import Data.Binary
 import Control.DeepSeq(NFData(..))
 
-data Coord = Coord { model_id  :: Int,
-                     res_id    :: Int,
-                     resname   :: String,
-                     atom_id   :: Int,
-                     atom_type :: String,
-                     x         :: Float,
-                     y         :: Float,
-                     z         :: Float,
-                     x_sigma   :: Float,
-                     y_sigma   :: Float,
-                     z_sigma   :: Float,
-                     entry_id  :: String }
+data Coord = Coord { model_id  :: !Int,
+                     res_id    :: !Int,
+                     resname   :: !String,
+                     atom_id   :: !Int,
+                     atom_type :: !String,
+                     x         :: !Float,
+                     y         :: !Float,
+                     z         :: !Float,
+                     x_sigma   :: !Float,
+                     y_sigma   :: !Float,
+                     z_sigma   :: !Float,
+                     entry_id  :: !String }
   deriving (Eq, Ord, Show)
 
 {-!
