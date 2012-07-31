@@ -18,6 +18,7 @@ import Control.Monad.Trans (lift)
 
 data ChemShift = ChemShift { cs_id     :: Int,
                              seq_id    :: Int,
+                             comp_id   :: String,
                              atom_id   :: String,
                              atom_type :: String,
                              isotope   :: Int,
@@ -26,35 +27,6 @@ data ChemShift = ChemShift { cs_id     :: Int,
                              entry_id  :: String
                            }
   deriving (Eq, Ord, Show, Typeable)
-
-{-
-instance S.BinaryShared Float
-  where get = lift B.get
-        put = lift . B.put 
-
-instance S.BinaryShared ChemShift
-  where get    = S.getShared (do v_cs_id     <- S.get
-                                 v_seq_id    <- S.get
-                                 v_atom_type <- S.get
-                                 v_isotope   <- S.get
-                                 v_chemshift <- S.get
-                                 v_sigma     <- S.get
-                                 v_entry_id  <- S.get
-                                 return $ ChemShift { cs_id     = v_cs_id    ,
-                                                      seq_id    = v_seq_id   ,
-                                                      atom_type = v_atom_type,
-                                                      isotope   = v_isotope  ,
-                                                      chemshift = v_chemshift,
-                                                      sigma     = v_sigma    ,
-                                                      entry_id  = v_entry_id })
-        put    = S.putShared (\cs -> do S.put . cs_id     $ cs
-                                        S.put . seq_id    $ cs
-                                        S.put . atom_type $ cs
-                                        S.put . isotope   $ cs
-                                        S.put . chemshift $ cs
-                                        S.put . sigma     $ cs
-                                        S.put . entry_id  $ cs)
--}
 
 {-!
 deriving instance Binary ChemShift
@@ -75,6 +47,7 @@ chemShiftLoop _                                                        = []
 
 emptyChemShift = ChemShift { cs_id     = (-1),
                              seq_id    = (-1),
+                             comp_id   = "<UNKNOWN COMPOUND>",
                              atom_id   = "<UNKNOWN ID>",
                              atom_type = "<UNKNOWN TYPE>",
                              isotope   = (-1),
@@ -84,6 +57,7 @@ emptyChemShift = ChemShift { cs_id     = (-1),
 
 isFilledChemShift cs = and . map (\f -> f cs) $ [is_good cs_id,
                                                  is_good seq_id,
+                                                 is_good comp_id,
                                                  is_good atom_type,
                                                  is_good isotope,
                                                  is_good chemshift,
@@ -109,6 +83,7 @@ extractChemShift entries = if isFilledChemShift entry
     entryUpdate (Entry "Atom_chem_shift.ID"                  v) cs = cs { cs_id     = I.int v   }
     entryUpdate (Entry "Atom_chem_shift.Seq_ID"              v) cs = cs { seq_id    = I.int v   }
     entryUpdate (Entry "Atom_chem_shift.Atom_ID"             v) cs = cs { atom_id   = v         } -- TODO: hashed string?
+    entryUpdate (Entry "Atom_chem_shift.Comp_ID"             v) cs = cs { comp_id   = v         } -- TODO: hashed string?
     entryUpdate (Entry "Atom_chem_shift.Atom_type"           v) cs = cs { atom_type = v         } -- TODO: hashed string?
     entryUpdate (Entry "Atom_chem_shift.Atom_isotope_number" v) cs = cs { isotope   = I.int v   }
     entryUpdate (Entry "Atom_chem_shift.Val"                 v) cs = cs { chemshift = F.float v }

@@ -1,7 +1,8 @@
 #GHCFLAGS=-debug
 #GHCFLAGS=-rtsopts -prof -auto-all +RTS -H2G -RTS
 #GHCFLAGS=-O3 -rtsopts +RTS -H2G -A1M -RTS
-GHCFLAGS=-prof -auto-all -rtsopts +RTS -H2G -A1M -RTS
+#GHCFLAGS=-prof -auto-all -rtsopts +RTS -H2G -A1M -RTS
+GHCFLAGS=-rtsopts +RTS -H2G -A1M -RTS
 #RTSFLAGS=-xc -k512M
 RTSFLAGS=+RTS -k256M -H3G -A1M -s -RTS
 ALEXFLAGS=--ghc --template=alex/
@@ -10,8 +11,10 @@ HAPPYFLAGS=--ghc --strict #--decode
 
 all: executables test_cs
 
-cabal: Data/STAR/Tokens.hs
-	cabal install
+cabal: prepare
+	cabal configure && cabal build
+
+prepare: Data/STAR/Tokens.hs
 
 test_cs: test/TestChemShifts
 	test/TestChemShifts smallest.str smallest.cs +RTS -H2G -A6M
@@ -34,7 +37,7 @@ all_parser_tests: test/TestParser
 	time test/TestParser $(RTSFLAGS) input.str  > /dev/null 
 
 test_parser: test/TestParser
-	test/TestParser +RTS ${RTSFLAGS} -RTS test.str
+	time test/TestParser +RTS ${RTSFLAGS} -RTS test.str
 
 executables: test/TestParser test/TestCoords test/TestTokens test/TestChemShifts test/MergeCoord test/MergeCS
 
@@ -52,9 +55,9 @@ test/TestTokens: test/TestTokens.hs Data/STAR/Tokens.hi
 
 Data/STAR/Parser.hs: Data/STAR/Parser.y
 
-#Data/STAR/Tokens.hs: Data/STAR/Tokens.x
 Data/STAR/Tokens.hs: preSrc/Tokens.x
 	alex $(ALEXFLAGS) $<
+	cp preSrc/Tokens.hs Data/STAR/Tokens.hs
 	# We do it because cabal is lame and doesn't allow custom Alex arguments in .cabal.
 
 %.o %.hi: %.hs

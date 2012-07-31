@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Main(main)
 where
 
