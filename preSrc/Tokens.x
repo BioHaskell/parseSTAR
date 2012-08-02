@@ -1,5 +1,5 @@
 {
-{-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, BangPatterns #-}
 module Data.STAR.Tokens (Token(..), ParserT(..), unParserT,
                          tokenValue,
                          alexScan,

@@ -1,13 +1,18 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
-module Data.STAR.Path((./), (/<>),
-                      starBlocks,
-                      filterP,
-                      blocksByName,
-                      entriesByName,
-                      entryValue)
+module Data.STAR.Path((./), (/<>)
+                     ,starBlocks
+                     ,filterP
+                     ,blocksByName
+                     ,entriesByName
+                     ,entryValue
+                     ,allEntriesByName
+                     ,flattenEntries)
 where
 
--- | This module presents a convenient, compositional interface for filtering
+import Prelude hiding(String)
+import Data.STAR.Type
+
+-- ^ This module presents a convenient, compositional interface for filtering
 --   Example use:
 --   > test1 :: STAR -> [String]
 --   > test1 = blocksByName "" ./ entriesByName "chemical_shifts" ./ entryValue
@@ -24,9 +29,6 @@ where
 --     byName  :: a -> [b]
 --     anyP    :: a -> [b]
 --     filterP :: (a -> Bool) -> a -> [b]
-
-import Prelude hiding(String)
-import Data.STAR.Type
 
 -- | Path separator - serves as general function composition operator.
 infixr 3 ./
@@ -62,8 +64,17 @@ entriesByName name es = matches es
                              then [e]
                              else []
 
+-- | Extracts a string value from a flat entry.
 entryValue ::  STAREntry -> [String]
 entryValue (Loop  _)   = []
 entryValue (Frame _ _) = []
 entryValue e           = [value $ e]
 
+-- | Expands a possibly complex entry into a list of flat entries.
+flattenEntries :: STAREntry -> [STAREntry]
+flattenEntries (Loop    l) = concat l
+flattenEntries (Frame _ l) = l
+flattenEntries e           = [e]
+
+-- | Find all flat entries with a given name, and return their values. 
+allEntriesByName name = starBlocks ./ entries ./ flattenEntries ./ entriesByName name ./ entryValue

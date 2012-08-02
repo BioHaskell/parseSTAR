@@ -67,6 +67,7 @@ Data/STAR/Tokens.hs: preSrc/Tokens.x
 	happy $(HAPPYFLAGS) $<
 
 clean:
-	rm -f `cat .gitignore`
-	(cd Data/STAR; rm -f `cat .gitignore`)
-	(cd test; rm -f `cat .gitignore`)
+	-rm -f `cat .gitignore`
+	-(cd Data/STAR; rm -f `cat .gitignore`)
+	-(cd test; rm -f `cat .gitignore`)
+	-rm `find . -iname '*.hi' -or -iname '*.o'`
