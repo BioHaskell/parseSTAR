@@ -3,5 +3,8 @@ TestParser
 TestConverter
 TestChemShifts
 TestCoords
+TestPath
 *.hi
 *.o
+*.p_hi
+*.p_o
