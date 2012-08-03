@@ -1,6 +1,6 @@
 {
 {-# LANGUAGE OverloadedStrings, BangPatterns, NoMonomorphismRestriction #-}
-module Data.STAR.Parser(parse, parseFile) where
+module Data.STAR.Parser(parse, parseFile, parseCompressedFile) where
 
 import qualified Data.STAR.Tokens as Tokens
 
@@ -124,15 +124,17 @@ failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ 
 
 parse = Tokens.runParser parseSTAR
 
-parseFile fname = do r <- simpleRead fname
-                     case parse r of
-                       Left  (Tokens.ParseError l c st s) -> return $ Left $ Prelude.concat ["Parse error in line ", show l,
-                                                                                             " column ", show c,
-                                                                                             ":", BSC.unpack s,
-                                                                                             "(lexer state is ", show st, ")"]
-                                                               
-                       Right result                       -> return $ Right $ Type.STAR result
+parseFile fname = parseFileCompressed False fname
+parseFileCompressed isCompressed fname = do r <- reader fname
+                                            case parse r of
+                                              Left  (Tokens.ParseError l c st s) -> return $ Left $ Prelude.concat ["Parse error in line ", show l,
+                                                                                                                    " column ", show c,
+                                                                                                                    ":", BSC.unpack s,
+                                                                                                                    "(lexer state is ", show st, ")"]
+                                                                                      
+                                              Right result                       -> return $ Right $ Type.STAR result
+  where reader = if isCompressed then compressedRead else simpleRead
 
-
+parseCompressedFile fname = parseFileCompressed True fname
 }
 
