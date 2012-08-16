@@ -1,0 +1,7 @@
+Criterion for chemical shift lists should be:
+1. Entries of key prefixed with Assigned_chem_shift_list.
+2. Entry _Assigned_chem_shift_list.Sf_category == assigned_chemical_shifts.
+
+Now it is based on frame code which is misleading (and omits useful shifts!)
+
+Should I correct analogous filter for coordinates?
