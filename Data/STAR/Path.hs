@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
-module Data.STAR.Path((./), (/<>)
+module Data.STAR.Path((./), (/<>), (->//)
                      ,starBlocks
                      ,filterP
                      ,blocksByName
@@ -38,6 +38,10 @@ infixr 3 ./
 -- | Path predicate operator - serves as general function composition operator.
 (/<>) ::  (a -> b) -> (b -> Bool) -> a -> [b]
 (/<>) = \f g -> filterP g . f
+
+infixl 1 ->//
+-- | Applies a path to a set of elements (not just a document, or single entry.)
+elts ->// path = concatMap path elts
 
 starBlocks ::  STAR -> [STARBlock]
 starBlocks (STAR blocks) = blocks
