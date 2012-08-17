@@ -3,22 +3,26 @@ module Main(main)
 where
 
 import Data.STAR.ChemShifts(ChemShift(..), parse)
-import System.Environment(getArgs)
+import System.Environment(getArgs, getProgName)
 import System.IO(hPrint, hPutStr, hPutStrLn, stderr)
 import Data.Binary
 import System.Exit(exitFailure, exitSuccess)
+import Control.Monad(when)
 
+printUsage = do prog <- getProgName
+                hPutStrLn stderr $ usageStr prog
+  where
+    usageStr prog = concat ["Usage: ", prog, " <input.str> <output.cs>"]
 
-main = do [input, output] <- getArgs
-          print "A"
+main = do l <- length `fmap` getArgs
+          when (l /= 2) $ do printUsage
+                             exitFailure
+          [input, output] <- getArgs
           dat <- parse input
-          print "B"
           case dat of
             Left  err    -> do hPutStr stderr $ "Error parsing " ++ input ++ ": "
-                               print "C1"
                                hPutStrLn stderr $ err
-                               print "D1"
                                exitFailure
-            Right parsed -> do Data.Binary.encodeFile output (parsed :: [ChemShift])
-                               print "C2"
+            Right parsed -> do putStrLn $ concat ["Parsed ", show $ length parsed, " chemical shifts."]
+                               Data.Binary.encodeFile output (parsed :: [ChemShift])
                                exitSuccess

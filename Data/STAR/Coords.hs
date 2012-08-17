@@ -5,12 +5,13 @@ where
 
 import Prelude hiding(String)
 import qualified Data.ByteString.Char8 as BSC
-import Data.STAR.Parser(parseFile)
-import Data.STAR.Type
 import Data.ByteString.Nums.Careless.Float as F
 import Data.ByteString.Nums.Careless.Int   as I
 import Data.Binary
 import Control.DeepSeq(NFData(..))
+import Data.STAR.Parser(parseFile)
+import Data.STAR.Type
+import Data.STAR.Path
 
 data Coord = Coord { model_id  :: !Int,
                      res_id    :: !Int,
@@ -34,13 +35,17 @@ deriving instance NFData Coord
 extractCoords (STAR l) = concatMap extract' l
   where
     extract' (Global l) = []
-    extract' (Data _ l) = concatMap chemShiftFrame l
+    extract' (Data _ l) = concatMap coordFrame l
 
-chemShiftFrame (Frame name elts) | "ensemble_of_conformers" `BSC.isPrefixOf` name = concatMap chemShiftLoop elts
-chemShiftFrame _                                                                     = []
+coordFrame (Frame name elts) | frameCategory elts == "conformer_family_coord_set" = concatMap coordLoop elts
+  where
+    frameCategory elts = emptyHead $ elts ->// entriesByName "Conformer_family_coord_set.Sf_category" ./ entryValue
+    emptyHead [] = ""
+    emptyHead l  = head l
+coordFrame _                                                                      = []
 
-chemShiftLoop (Loop elts@(((Entry e v:_):_))) | "Atom_site.Assembly_ID" `BSC.isPrefixOf` e = map extractCoord elts
-chemShiftLoop _                                                                            = []
+coordLoop (Loop elts@(((Entry e v:_):_))) | "Atom_site.Assembly_ID" `BSC.isPrefixOf` e = map extractCoord elts
+coordLoop _                                                                            = []
 
 emptyCoord = Coord { model_id  = maxBound,
                      res_id    = maxBound,

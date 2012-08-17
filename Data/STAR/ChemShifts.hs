@@ -42,7 +42,7 @@ extractChemShifts (STAR l) = concatMap extract' l
 
 chemShiftFrame (Frame name elts) | frameCategory elts == "assigned_chemical_shifts" = concatMap chemShiftLoop elts
   where
-    frameCategory elts = emptyHead $ elts ->// entriesByName "Assignedchem_shift_list.Sf_category" ./ entryValue
+    frameCategory elts = emptyHead $ elts ->// entriesByName "Assigned_chem_shift_list.Sf_category" ./ entryValue
     emptyHead [] = ""
     emptyHead l  = head l
 chemShiftFrame _                                                                    = []
