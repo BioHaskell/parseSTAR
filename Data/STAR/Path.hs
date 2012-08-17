@@ -19,16 +19,6 @@ import Data.STAR.Type
 --   Another example:
 --   > test2 :: STAR -> [String]
 --   > test2 = starBlocks ./ entries ./ entryValue
---
---   TODO: Dereferencing.
---   NOTE: may be better to make:
---   class PathValue a where
---     value :: a -> String
---
---   class Pathable a b where
---     byName  :: a -> [b]
---     anyP    :: a -> [b]
---     filterP :: (a -> Bool) -> a -> [b]
 
 -- | Path separator - serves as general function composition operator.
 infixr 3 ./
