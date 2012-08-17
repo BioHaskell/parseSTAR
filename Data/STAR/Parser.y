@@ -73,7 +73,7 @@ semilist :: { Type.String }
 semilist : SemiStart SemiEnd { cheatConcat (Tokens.tokenValue $1) (Tokens.tokenValue $2) }
 
 topLoop :: { Type.STAREntry }
-topLoop : Loop list1(structure) list1(valueListEntry) { matchTypesValues $2 $3 }
+topLoop : Loop list1(structure) list1(valueListEntry) {% matchTypesValues $2 $3 }
 
 structureList :: { [STARType] }
 structureList : list1(structure)          { $1 }
@@ -101,25 +101,25 @@ data STARStruct = SText Type.String -- keep position for matchTypesValues error 
                 | SStop 
   deriving (Show,Eq)
 
-matchTypesValues  :: [STARType] -> [STARStruct] -> Type.STAREntry
-matchTypesValues !ts !ss = matchTypesValues' ts ts ss [] [] finish
+matchTypesValues  :: [STARType] -> [STARStruct] -> Tokens.ParserM Type.STAREntry
+matchTypesValues !ts !ss = matchTypesValues' ts ts ss [] [] finish Tokens.parseError
   where
-    finish :: [[Type.STAREntry]] -> [STARStruct] -> Type.STAREntry
-    finish entries [] = Type.Loop entries
+    finish :: [[Type.STAREntry]] -> [STARStruct] -> Tokens.ParserM Type.STAREntry
+    finish entries [] = return $ Type.Loop entries
 
-matchTypesValues' :: [STARType] -> [STARType] -> [STARStruct] -> [[Type.STAREntry]] -> [Type.STAREntry] -> ([[Type.STAREntry]] -> [STARStruct] -> a) -> a
-matchTypesValues' (TSimple  t :ts) tts (SText  s:ss) !acc1 !acc2 !cont = matchTypesValues' ts  tts ss acc1 (Type.Entry t s:acc2) cont
-matchTypesValues' (TSimple  t :ts) tts (SRef   s:ss) !acc1 !acc2 !cont = matchTypesValues' ts  tts ss acc1 (Type.Ref   t s:acc2) cont
-matchTypesValues' (TComplex tc:ts) tts ss            !acc1 !acc2 !cont = matchTypesValues' tc  tc  ss []   []                    loopCont
+--matchTypesValues' :: [STARType] -> [STARType] -> [STARStruct] -> [[Type.STAREntry]] -> [Type.STAREntry] -> ([[Type.STAREntry]] -> [STARStruct] -> a) -> a
+matchTypesValues' (TSimple  t :ts) tts (SText  s:ss) !acc1 !acc2 !cont !errCont = matchTypesValues' ts  tts ss acc1 (Type.Entry t s:acc2) cont     errCont
+matchTypesValues' (TSimple  t :ts) tts (SRef   s:ss) !acc1 !acc2 !cont !errCont = matchTypesValues' ts  tts ss acc1 (Type.Ref   t s:acc2) cont     errCont
+matchTypesValues' (TComplex tc:ts) tts ss            !acc1 !acc2 !cont !errCont = matchTypesValues' tc  tc  ss []   []                    loopCont errCont
   where
     --loopCont :: [Type.STAREntry] -> [STARStruct] -> a
-    loopCont es sn = matchTypesValues' ts tts sn acc1 (Type.Loop es:acc2) cont
-matchTypesValues' []               tts (SStop   :ss) !acc1 !acc2 !cont = cont (Prelude.reverse (Prelude.reverse acc2:acc1)) ss
-matchTypesValues' []               tts ss            !acc1 !acc2 !cont = matchTypesValues' tts tts ss (Prelude.reverse acc2:acc1) [] cont
-matchTypesValues' (t          :_ ) _   (s       :ss) !acc1 !acc2 !cont = error $ Prelude.concat ["Can't match declared ",
-                                                                                                 show t,
-                                                                                                 " and actual ",
-                                                                                                 show s]
+    loopCont es sn = matchTypesValues' ts tts sn acc1 (Type.Loop es:acc2) cont errCont
+matchTypesValues' []               tts (SStop   :ss) !acc1 !acc2 !cont !errCont = cont (Prelude.reverse (Prelude.reverse acc2:acc1)) ss
+matchTypesValues' []               tts ss            !acc1 !acc2 !cont !errCont = matchTypesValues' tts tts ss (Prelude.reverse acc2:acc1) [] cont errCont
+matchTypesValues' (t          :_ ) _   (s       :ss) !acc1 !acc2 !cont !errCont = errCont $ BSC.pack $ Prelude.concat ["Can't match declared ",
+                                                                                                                       show t,
+                                                                                                                       " and actual ",
+                                                                                                                       show s]
 
 failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ show tok]
 
