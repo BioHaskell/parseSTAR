@@ -7,9 +7,10 @@ import qualified Data.STAR.Tokens as Tokens
 import Control.Monad(liftM, liftM2)
 import Control.Monad.State.Strict
 import qualified Data.STAR.Type as Type
-import Prelude hiding (String, getContents, drop, take, (++))
+import Prelude hiding (String, getContents, drop, take, (++), catch)
 import Data.ByteString.Char8    as BSC
 import Control.DeepSeq
+import Control.Exception(SomeException, catch)
 import qualified GHC.Exts as Happy_GHC_Exts
 import Data.STAR.StringUtil
 
@@ -125,15 +126,19 @@ failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ 
 parse = Tokens.runParser parseSTAR
 
 parseFile fname = parseFileCompressed False fname
-parseFileCompressed isCompressed fname = do r <- reader fname
-                                            case parse r of
-                                              Left  (Tokens.ParseError l c st s) -> return $ Left $ Prelude.concat ["Parse error in line ", show l,
-                                                                                                                    " column ", show c,
-                                                                                                                    ":", BSC.unpack s,
-                                                                                                                    "(lexer state is ", show st, ")"]
-                                                                                      
-                                              Right result                       -> return $ Right $ Type.STAR result
-  where reader = if isCompressed then compressedRead else simpleRead
+parseFileCompressed isCompressed fname = (do r <- reader fname
+                                             case parse r of
+                                               Left  (Tokens.ParseError l c st s) -> return $ Left $ Prelude.concat ["Parse error in line ", show l,
+                                                                                                                     " column ", show c,
+                                                                                                                     ":", BSC.unpack s,
+                                                                                                                     "(lexer state is ", show st, ")"]
+                                                                                       
+                                               Right result                       -> return $ Right $ Type.STAR result
+                                         ) `catch` handler
+  where reader = if isCompressed
+                   then compressedRead
+                   else simpleRead
+        handler (e :: SomeException) = return . Left . Prelude.concat $ ["Error in ", fname, ": ", show e]
 
 parseCompressedFile fname = parseFileCompressed True fname
 }
