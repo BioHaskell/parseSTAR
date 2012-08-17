@@ -44,6 +44,9 @@ executables: test/TestParser test/TestCoords test/TestTokens test/TestChemShifts
 test/TestParser: test/TestParser.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi
 	ghc $(GHCFLAGS) $<
 
+test/MergeCS: test/MergeCS.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi Data/STAR/ChemShifts.hs
+	ghc $(GHCFLAGS) $<
+
 test/TestCoords: test/TestCoords.hs Data/STAR/Parser.hs Data/STAR/Tokens.hs Data/STAR/Tokens.hi
 	ghc $(GHCFLAGS) $<
 
