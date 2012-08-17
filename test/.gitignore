@@ -4,6 +4,8 @@ TestConverter
 TestChemShifts
 TestCoords
 TestPath
+MergeCS
+MergeCoord
 *.hi
 *.o
 *.p_hi
