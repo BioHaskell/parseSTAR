@@ -5,8 +5,6 @@ where
 
 import Prelude hiding(String)
 import qualified Data.ByteString.Char8 as BSC
-import Data.STAR.Parser(parseFile)
-import Data.STAR.Type
 import Data.ByteString.Nums.Careless.Float as F
 import Data.ByteString.Nums.Careless.Int   as I
 import Data.Binary(Binary(..))
@@ -15,6 +13,10 @@ import qualified Data.Binary        as B
 import Control.DeepSeq(NFData(..))
 import Data.Typeable
 import Control.Monad.Trans (lift)
+
+import Data.STAR.Parser(parseFile)
+import Data.STAR.Type
+import Data.STAR.Path
 
 data ChemShift = ChemShift { cs_id     :: !Int,
                              seq_id    :: !Int,
@@ -33,14 +35,18 @@ deriving instance Binary ChemShift
 deriving instance NFData ChemShift
 !-}
 
-
 extractChemShifts (STAR l) = concatMap extract' l
   where
     extract' (Global l) = []
     extract' (Data _ l) = concatMap chemShiftFrame l
 
-chemShiftFrame (Frame name elts) | "assigned_chem_shift_list_" `BSC.isPrefixOf` name = concatMap chemShiftLoop elts
-chemShiftFrame _                                                                     = []
+chemShiftFrame (Frame name elts) | frameCategory elts == "assigned_chemical_shifts" = concatMap chemShiftLoop elts
+  where
+    frameCategory elts = emptyHead $ elts ->// entriesByName "Assignedchem_shift_list.Sf_category" ./ entryValue
+    emptyHead [] = ""
+    emptyHead l  = head l
+chemShiftFrame _                                                                    = []
+
 
 chemShiftLoop (Loop elts@(((Entry e v:_):_))) | "Atom_chem_shift" `BSC.isPrefixOf` e = map extractChemShift elts
 chemShiftLoop _                                                        = []
