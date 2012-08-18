@@ -15,7 +15,7 @@ import Codec.Compression.GZip(decompress)
 simpleRead fname = unsafeMMapFile fname `Exc.catch` \e -> do reportError (e :: IOError)
                                                              BSC.readFile fname
   where
-    reportError e = do Prelude.putStrLn $ Prelude.concat [show e, "while trying to mmap('", fname, "')"]
+    reportError e = Prelude.putStrLn $ Prelude.concat [show e, "while trying to mmap('", fname, "')"]
 
 compressedRead fname = do s <- simpleRead fname
                           let r = BSC.concat . toChunks . decompress . fromChunks $ [s]

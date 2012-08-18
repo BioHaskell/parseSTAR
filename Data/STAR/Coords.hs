@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Data.STAR.Coords(Coord(..), extractCoords, parse)
 where
@@ -44,7 +44,7 @@ coordFrame (Frame name elts) | frameCategory elts == "conformer_family_coord_set
     emptyHead l  = head l
 coordFrame _                                                                      = []
 
-coordLoop (Loop elts@(((Entry e v:_):_))) | "Atom_site.Assembly_ID" `BSC.isPrefixOf` e = map extractCoord elts
+coordLoop (Loop elts@((Entry e v:_):_)) | "Atom_site.Assembly_ID" `BSC.isPrefixOf` e = map extractCoord elts
 coordLoop _                                                                            = []
 
 emptyCoord = Coord { model_id  = maxBound,
@@ -60,18 +60,18 @@ emptyCoord = Coord { model_id  = maxBound,
                      z_sigma   = 99e99,
                      entry_id  = "<UNKNOWN ENTRY>" }
 
-isFilledCoord cs = and . map (\f -> f cs) $ [is_good model_id,
-                                             is_good res_id,
-                                             is_good resname,
-                                             is_good atom_id,
-                                             is_good atom_type,
-                                             is_good x,
-                                             is_good y,
-                                             is_good z,
-                                             is_good x_sigma,
-                                             is_good y_sigma,
-                                             is_good z_sigma,
-                                             is_good entry_id]
+isFilledCoord cs = all (\f -> f cs) [is_good model_id,
+                                     is_good res_id,
+                                     is_good resname,
+                                     is_good atom_id,
+                                     is_good atom_type,
+                                     is_good x,
+                                     is_good y,
+                                     is_good z,
+                                     is_good x_sigma,
+                                     is_good y_sigma,
+                                     is_good z_sigma,
+                                     is_good entry_id]
 {-((cs_id     cs != cs_id     emptyCoord) &&
                         (seq_id    cs != seq_id    emptyCoord) &&
                         (atom_type cs != atom_type emptyCoord) &&

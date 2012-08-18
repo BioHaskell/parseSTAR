@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveDataTypeable, BangPatterns #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveDataTypeable #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Data.STAR.ChemShifts(ChemShift(..), extractChemShifts, parse)
 where
@@ -48,27 +48,27 @@ chemShiftFrame (Frame name elts) | frameCategory elts == "assigned_chemical_shif
 chemShiftFrame _                                                                    = []
 
 
-chemShiftLoop (Loop elts@(((Entry e v:_):_))) | "Atom_chem_shift" `BSC.isPrefixOf` e = map extractChemShift elts
+chemShiftLoop (Loop elts@((Entry e v:_):_)) | "Atom_chem_shift" `BSC.isPrefixOf` e = map extractChemShift elts
 chemShiftLoop _                                                        = []
 
-emptyChemShift = ChemShift { cs_id     = (-1),
-                             seq_id    = (-1),
+emptyChemShift = ChemShift { cs_id     = -1,
+                             seq_id    = -1,
                              comp_id   = "<UNKNOWN COMPOUND>",
                              atom_id   = "<UNKNOWN ID>",
                              atom_type = "<UNKNOWN TYPE>",
-                             isotope   = (-1),
-                             chemshift = (-999.999),
-                             sigma     = (-999.999),
+                             isotope   = -1,
+                             chemshift = -999.999,
+                             sigma     = -999.999,
                              entry_id  = "<UNKNOWN ENTRY>" }
 
-isFilledChemShift cs = and . map (\f -> f cs) $ [is_good cs_id,
-                                                 is_good seq_id,
-                                                 is_good comp_id,
-                                                 is_good atom_type,
-                                                 is_good isotope,
-                                                 is_good chemshift,
-                                                 is_good sigma,
-                                                 is_good entry_id]
+isFilledChemShift cs = all (\f -> f cs) [is_good cs_id,
+                                         is_good seq_id,
+                                         is_good comp_id,
+                                         is_good atom_type,
+                                         is_good isotope,
+                                         is_good chemshift,
+                                         is_good sigma,
+                                         is_good entry_id]
 {-((cs_id     cs != cs_id     emptyChemShift) &&
                         (seq_id    cs != seq_id    emptyChemShift) &&
                         (atom_type cs != atom_type emptyChemShift) &&

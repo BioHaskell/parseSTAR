@@ -23,11 +23,11 @@ import Data.STAR.Type
 -- | Path separator - serves as general function composition operator.
 infixr 3 ./
 (./) :: (a -> [a1]) -> (a1 -> [b]) -> a -> [b]
-(./) = \f g -> concatMap g . f
+f ./ g = concatMap g . f
 
 -- | Path predicate operator - serves as general function composition operator.
 (/<>) ::  (a -> b) -> (b -> Bool) -> a -> [b]
-(/<>) = \f g -> filterP g . f
+f /<> g = filterP g . f
 
 infixl 1 ->//
 -- | Applies a path to a set of elements (not just a document, or single entry.)
@@ -37,7 +37,7 @@ starBlocks ::  STAR -> [STARBlock]
 starBlocks (STAR blocks) = blocks
 
 filterP ::  (t -> Bool) -> t -> [t]
-filterP f x = if f x then [x] else []
+f `filterP` x = [x | f x]
 --  STAR selectors are typed, and always return a list of results
 --  (in order to be conveniently used with concatMap and composition.)
 -- | Selects all block matching a given name or GLOBAL block for empty string.
@@ -54,15 +54,13 @@ entriesByName ::  String -> STAREntry -> [STAREntry]
 entriesByName name es = matches es
   where
     matches (Loop table) = concatMap (concatMap matches) table
-    matches e            = if key e == name
-                             then [e]
-                             else []
+    matches e            = [e | key e == name]
 
 -- | Extracts a string value from a flat entry.
 entryValue ::  STAREntry -> [String]
 entryValue (Loop  _)   = []
 entryValue (Frame _ _) = []
-entryValue e           = [value $ e]
+entryValue e           = [value e]
 
 -- | Expands a possibly complex entry into a list of flat entries.
 flattenEntries :: STAREntry -> [STAREntry]
