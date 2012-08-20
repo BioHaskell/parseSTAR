@@ -15,6 +15,7 @@ import Data.STAR.Path
 
 data Coord = Coord { model_id  :: !Int,
                      res_id    :: !Int,
+                     entity_id :: !Int,
                      resname   :: !String,
                      atom_id   :: !Int,
                      atom_type :: !String,
@@ -51,6 +52,7 @@ emptyCoord = Coord { model_id  = maxBound,
                      res_id    = maxBound,
                      resname   = "<UNKNOWN RESIDUE>",
                      atom_id   = maxBound,
+                     entity_id = maxBound,
                      atom_type = "<UNKNOWN ATOM>",
                      x         = 99e99,
                      y         = 99e99,
@@ -92,6 +94,7 @@ extractCoord entries = if isFilledCoord entry
     entryUpdate (Entry "Atom_site.Model_ID"            v) cs = cs{ model_id  = I.int   v }
     entryUpdate (Entry "Atom_site.Label_comp_index_ID" v) cs = cs{ res_id    = I.int   v }
     entryUpdate (Entry "Atom_site.Label_comp_ID"       v) cs = cs{ resname   =         v }
+    entryUpdate (Entry "Atom_site.Label_entity_ID"     v) cs = cs{ entity_id = I.int   v }
     entryUpdate (Entry "Atom_site.Label_atom_ID"       v) cs = cs{ atom_id   = I.int   v }
     entryUpdate (Entry "Atom_site.Type_symbol"         v) cs = cs{ atom_type =         v }
     entryUpdate (Entry "Atom_site.Cartn_x"             v) cs = cs{ x         = F.float v }

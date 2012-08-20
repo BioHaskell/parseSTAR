@@ -20,6 +20,7 @@ import Data.STAR.Path
 
 data ChemShift = ChemShift { cs_id     :: !Int,
                              seq_id    :: !Int,
+                             entity_id :: !Int,
                              comp_id   :: !String,
                              atom_id   :: !String,
                              atom_type :: !String,
@@ -52,6 +53,7 @@ chemShiftLoop (Loop elts@((Entry e v:_):_)) | "Atom_chem_shift" `BSC.isPrefixOf`
 chemShiftLoop _                                                        = []
 
 emptyChemShift = ChemShift { cs_id     = -1,
+                             entity_id = -1,
                              seq_id    = -1,
                              comp_id   = "<UNKNOWN COMPOUND>",
                              atom_id   = "<UNKNOWN ID>",
@@ -87,6 +89,7 @@ extractChemShift entries = if isFilledChemShift entry
                              else error $ "Cannot fill entry from: " ++ show entries
   where
     entryUpdate (Entry "Atom_chem_shift.ID"                  v) cs = cs { cs_id     = I.int v   }
+    entryUpdate (Entry "Atom_chem_shift.Entity_ID"           v) cs = cs { entity_id = I.int v   }
     entryUpdate (Entry "Atom_chem_shift.Seq_ID"              v) cs = cs { seq_id    = I.int v   }
     entryUpdate (Entry "Atom_chem_shift.Atom_ID"             v) cs = cs { atom_id   = v         } -- TODO: hashed string?
     entryUpdate (Entry "Atom_chem_shift.Comp_ID"             v) cs = cs { comp_id   = v         } -- TODO: hashed string?
