@@ -11,12 +11,12 @@ import Control.Monad(forM)
 import Control.DeepSeq(rnf)
 import Control.Exception
 
-robustDecode fname = ((do (r :: [ChemShift]) <- decodeFile fname
-                          r `seq` putStrLn $ "Success: " ++ fname
-                          return r)
-                       `Control.Exception.catch`
-                      (\(e :: SomeException)-> do hPutStrLn stderr $ "Error in " ++ fname ++ ": " ++ show e
-                                                  return []))
+robustDecode fname = (do (r :: [ChemShift]) <- decodeFile fname
+                         r `seq` putStrLn $ "Success: " ++ fname
+                         return r)
+                      `Control.Exception.catch`
+                     (\(e :: SomeException)-> do hPutStrLn stderr $ Prelude.concat ["Error in ", fname, ": ", show e]
+                                                 return [])
 
 
 

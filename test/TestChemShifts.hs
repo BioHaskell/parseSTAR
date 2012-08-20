@@ -21,7 +21,7 @@ main = do l <- length `fmap` getArgs
           dat <- parse input
           case dat of
             Left  err    -> do hPutStr stderr $ "Error parsing " ++ input ++ ": "
-                               hPutStrLn stderr $ err
+                               hPutStrLn stderr err
                                exitFailure
             Right parsed -> do putStrLn $ concat ["Parsed ", show $ length parsed, " chemical shifts."]
                                Data.Binary.encodeFile output (parsed :: [ChemShift])

@@ -23,7 +23,7 @@ main = do l <- length `fmap` getArgs
           dat <- parse input
           case dat of
             Left  err    -> do hPutStr   stderr $ "Error parsing " ++ input ++ ": "
-                               hPutStrLn stderr $ err
+                               hPutStrLn stderr   err
                                exitFailure
             Right parsed -> do case output of
                                  "-" -> print parsed

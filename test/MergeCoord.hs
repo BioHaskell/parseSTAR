@@ -12,13 +12,15 @@ import Control.Exception
 
 isFirstModel c = model_id c == 1
 
-robustDecode fname = ((do (r :: [Coord]) <- decodeFile fname
-                          let fr = filter isFirstModel r
-                          rnf fr `seq` putStrLn $ "Success: " ++ fname
-                          return fr)
-                       `Control.Exception.catch`
-                      (\(e :: SomeException)-> do hPutStrLn stderr $ "Error in " ++ fname ++ ": " ++ show e
-                                                  return []))
+robustDecode fname = (do (r :: [Coord]) <- decodeFile fname
+                         let fr = filter isFirstModel r
+                         rnf fr `seq` putStrLn $ "Success: " ++ fname
+                         return fr)
+                       `Control.Exception.catch` handler
+  where
+    handler (e :: SomeException) = do hPutStrLn stderr $ "Error in " ++ fname ++ ": " ++ show e
+                                      return []
+
 
 main = do args <- getArgs
           (lists :: [[Coord]]) <- forM args robustDecode
