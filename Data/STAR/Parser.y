@@ -1,5 +1,5 @@
 {
-{-# LANGUAGE OverloadedStrings, BangPatterns, NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings, BangPatterns, NoMonomorphismRestriction, ScopedTypeVariables #-}
 module Data.STAR.Parser(parse, parseFile,
                                parsePlainFile,
                                parseCompressedFile) where
@@ -15,7 +15,7 @@ import Control.DeepSeq
 import Control.Exception(SomeException, catch)
 import qualified GHC.Exts as Happy_GHC_Exts
 import Data.STAR.StringUtil
-import qualified Data.List(isSuffixOf)
+import qualified Data.List(isSuffixOf, (++))
 
 }
 
@@ -89,35 +89,45 @@ valueList :: { [STARStruct] }
 valueList : list1(valueListEntry) { $1 }
 
 valueListEntry :: { STARStruct }
-valueListEntry : Text     { SText $ Tokens.tokenValue $1 }
-               | Ref      { SRef  $ Tokens.tokenValue $1 }
-               | EndLoop  { SStop                        }
-               | semilist { SText                     $1 }
+valueListEntry : Text     {% addPos $ \p -> SText p $ Tokens.tokenValue $1 }
+               | Ref      {% addPos $ \p -> SRef  p $ Tokens.tokenValue $1 }
+               | EndLoop  {% addPos $ \p -> SStop p                        }
+               | semilist {% addPos $ \p -> SText p                     $1 }
 {
 
 data STARType   = TSimple  Type.STARKey
                 | TComplex [STARType]
   deriving (Show, Eq)
 
-data STARStruct = SText Type.String -- keep position for matchTypesValues error reporting!
-                | SRef  Type.String -- TODO: implement!!!
-                | SStop 
+data STARStruct = SText Tokens.AlexPosn Type.String -- keep position for matchTypesValues error reporting!
+                | SRef  Tokens.AlexPosn Type.String -- TODO: implement!!!
+                | SStop Tokens.AlexPosn
   deriving (Show,Eq)
 
+addPos e = do pos <- Tokens.getPos
+              return $! e pos
+
 matchTypesValues  :: [STARType] -> [STARStruct] -> Tokens.ParserM Type.STAREntry
-matchTypesValues !ts !ss = matchTypesValues' ts ts ss [] [] finish Tokens.parseError
+matchTypesValues !ts !ss = matchTypesValues' ts ts ss [] [] finish reportError
   where
     finish :: [[Type.STAREntry]] -> [STARStruct] -> Tokens.ParserM Type.STAREntry
     finish entries [] = return $ Type.Loop entries
+    reportError msg = Tokens.parseError $ BSC.concat [msg, bshow $ Prelude.zip (infiniteConcat ts) (Prelude.concatMap unText ss)]
+    bshow  = BSC.pack . show
+    unText (SText _ s) = [s]
+    unText (SRef  _ s) = [s]
+    unText (SStop _  ) = [ ]
+    infiniteConcat ss  = ss Data.List.++ infiniteConcat ss
+     
 
 --matchTypesValues' :: [STARType] -> [STARType] -> [STARStruct] -> [[Type.STAREntry]] -> [Type.STAREntry] -> ([[Type.STAREntry]] -> [STARStruct] -> a) -> a
-matchTypesValues' (TSimple  t :ts) tts (SText  s:ss) !acc1 !acc2 !cont !errCont = matchTypesValues' ts  tts ss acc1 (Type.Entry t s:acc2) cont     errCont
-matchTypesValues' (TSimple  t :ts) tts (SRef   s:ss) !acc1 !acc2 !cont !errCont = matchTypesValues' ts  tts ss acc1 (Type.Ref   t s:acc2) cont     errCont
-matchTypesValues' (TComplex tc:ts) tts ss            !acc1 !acc2 !cont !errCont = matchTypesValues' tc  tc  ss []   []                    loopCont errCont
+matchTypesValues' (TSimple  t :ts) tts (SText p  s:ss) !acc1 !acc2 !cont !errCont = matchTypesValues' ts  tts ss acc1 (Type.Entry t s:acc2) cont     errCont
+matchTypesValues' (TSimple  t :ts) tts (SRef  p  s:ss) !acc1 !acc2 !cont !errCont = matchTypesValues' ts  tts ss acc1 (Type.Ref   t s:acc2) cont     errCont
+matchTypesValues' (TComplex tc:ts) tts ss              !acc1 !acc2 !cont !errCont = matchTypesValues' tc  tc  ss []   []                    loopCont errCont
   where
     --loopCont :: [Type.STAREntry] -> [STARStruct] -> a
     loopCont es sn = matchTypesValues' ts tts sn acc1 (Type.Loop es:acc2) cont errCont
-matchTypesValues' []               tts (SStop   :ss) !acc1 !acc2 !cont !errCont = cont (Prelude.reverse (Prelude.reverse acc2:acc1)) ss
+matchTypesValues' []               tts (SStop p :ss) !acc1 !acc2 !cont !errCont = cont (Prelude.reverse (Prelude.reverse acc2:acc1)) ss
 matchTypesValues' []               tts ss            !acc1 !acc2 !cont !errCont = matchTypesValues' tts tts ss (Prelude.reverse acc2:acc1) [] cont errCont
 matchTypesValues' (t          :_ ) _   (s       :ss) !acc1 !acc2 !cont !errCont = errCont $ BSC.pack $ Prelude.concat ["Can't match declared ",
                                                                                                                        show t,

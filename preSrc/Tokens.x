@@ -33,28 +33,29 @@ import Data.STAR.StringUtil(stringStep)
 
 %wrapper "posn-bytestring-strict"
 
-$white         = [ \t \n \f \v \r \  ]
-$nonwhiteFirst = ~ $white # [ \# \! ] -- non-whitespace
-$nonwhite      = [ . \xfeff ] # $white -- non-whitespace
-$nonspecial    = $nonwhite # ['"\;\$] -- not whitespace and not underline
-$nonspec       = [a-zA-Z0-9_] -- not whitespace and not underline
-$nonunder      = $nonwhiteFirst # ['"\;\$\_] -- not whitespace and not underline
-$commentChar   = [\!\#]
-$under         = [\_]
-$dollar        = \$ 
-$eoln          = \n
-$semi          = \;
-$noneoln       = [^\n]
-$noneolnsemi   = [^\n\;]
-$singleQuote   = [\']
-$doubleQuote   = [\"]
-$nonsemi       = [^\;]
-$nonsingle     = ~ [\']
-$nondouble     = ~ [\"]
+$white          = [ \t \n \f \v \r \  ]
+$nonwhiteFirst  = ~ $white # [ \# \! ] -- non-whitespace
+$nonwhite       = [ . \xfeff ] # $white -- non-whitespace
+$nonwhiteNotBeg = [ . \xfeff \# \! ] # $white # [ \' \" ] -- non-whitespace
+$nonspecial     = $nonwhite # ['"\;\$] -- not whitespace and not underline
+$nonspec        = [a-zA-Z0-9_] -- not whitespace and not underline
+$nonunder       = $nonwhiteFirst # ['"\;\$\_] -- not whitespace and not underline
+$commentChar    = [\!\#]
+$under          = [\_]
+$dollar         = \$ 
+$eoln           = \n
+$semi           = \;
+$noneoln        = [^\n]
+$noneolnsemi    = [^\n\;]
+$singleQuote    = [\']
+$doubleQuote    = [\"]
+$nonsemi        = [^\;]
+$nonsingle      = ~ [\']
+$nondouble      = ~ [\"]
 
 tokens :-
 <0>          $white +                                                        ;
-<0>          $commentChar .* $eoln                                           ;
+<0>          ^$commentChar .* $eoln                                          ;
 <0>          $under $nonspecial*   / $white                                  { (\p s -> Name . drop (BSC.length "_"    )   $ s , 0           ) } 
 <0>          "save_" $nonwhite+                                              { (\p s -> Save . drop (BSC.length "save_")   $ s , 0           ) }
 <0>          "save_"   / $white                                              { (\p s -> EndSave                                , 0           ) }
@@ -64,6 +65,8 @@ tokens :-
 <0>          "data_" $nonwhite+ / $white                                     { (\p s -> chopFront "data_" s Data               , 0           ) }
 <0>          $dollar $nonwhite+ / $white                                     { (\p s -> chopFront "$"     s Ref                , 0           ) }
 <0>          $nonunder $nonwhite* / $white                                   { (\p s -> Text s                                 , 0           ) }
+<0>          $nonunder $nonwhite* / $white                                   { (\p s -> Text s                                 , 0           ) }
+<0>          [ ^\n ] ^ $nonwhiteNotBeg+ / $white                             { (\p s -> Text s                                 , 0           ) }
 
 <0>          $white ^ $singleQuote                                           { (\p s -> SemiStart $ stringStep s 1             , squotstring ) }
 <0>          $white ^ $doubleQuote                                           { (\p s -> SemiStart $ stringStep s 1             , dquotstring ) }
