@@ -1,6 +1,8 @@
 {
 {-# LANGUAGE OverloadedStrings, BangPatterns, NoMonomorphismRestriction #-}
-module Data.STAR.Parser(parse, parseFile, parseCompressedFile) where
+module Data.STAR.Parser(parse, parseFile,
+                               parsePlainFile,
+                               parseCompressedFile) where
 
 import qualified Data.STAR.Tokens as Tokens
 
@@ -13,6 +15,7 @@ import Control.DeepSeq
 import Control.Exception(SomeException, catch)
 import qualified GHC.Exts as Happy_GHC_Exts
 import Data.STAR.StringUtil
+import qualified Data.List(isSuffixOf)
 
 }
 
@@ -125,7 +128,7 @@ failToken tok = Tokens.parseError . BSC.concat $ ["parse error on ", BSC.pack $ 
 
 parse = Tokens.runParser parseSTAR
 
-parseFile fname = parseFileCompressed False fname
+parsePlainFile fname = parseFileCompressed False fname
 parseFileCompressed isCompressed fname = (do r <- reader fname
                                              case parse r of
                                                Left  (Tokens.ParseError l c st s) -> return $ Left $ Prelude.concat ["Parse error in line ", show l,
@@ -141,5 +144,7 @@ parseFileCompressed isCompressed fname = (do r <- reader fname
         handler (e :: SomeException) = return . Left . Prelude.concat $ ["Error in ", fname, ": ", show e]
 
 parseCompressedFile fname = parseFileCompressed True fname
+
+parseFile fname =  parseFileCompressed (".gz" `Data.List.isSuffixOf` fname) fname
 }
 

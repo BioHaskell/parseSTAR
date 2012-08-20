@@ -8,7 +8,7 @@ module Data.STAR(Data.STAR.Type.STAR(..),
                  Data.STAR.ChemShifts.extractChemShifts,
                  Data.STAR.Coords.extractCoords) where
 
-import qualified Data.STAR.Parser(parse, parseFile, parseCompressedFile)
+import qualified Data.STAR.Parser(parse, parseFile)
 import Data.STAR.Type
 import Data.STAR.ChemShifts(extractChemShifts, ChemShift(..))
 import Data.STAR.Coords    (extractCoords,     Coord    (..))
@@ -19,11 +19,7 @@ parseSTAR         = Data.STAR.Parser.parse
 
 -- | Parser that automatically guesses whether file is compressed or not
 --   And then calls @Data.STAR.parseFile@ or @Data.STAR.parseCompressedFile@.
-parseSTARFile fname =  parser fname
-  where
-    parser = if ".gz" `L.isSuffixOf` fname
-               then Data.STAR.Parser.parseCompressedFile
-               else Data.STAR.Parser.parseFile
+parseSTARFile = Data.STAR.Parser.parseFile
    
 
 
