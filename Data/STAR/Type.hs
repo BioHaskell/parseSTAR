@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns, CPP #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Data.STAR.Type(
        STAR     (..),
@@ -25,9 +25,11 @@ data STARBlock = Global { entries     :: ![STAREntry]
                         }
   deriving (Show, Eq)
 
+#ifdef DEFINE_NFDATA_BYTESTRING
 instance NFData BSC.ByteString
   where
     rnf bs = bs `seq` ()
+#endif
 
 {-!
 
