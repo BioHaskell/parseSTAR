@@ -3,7 +3,7 @@ module Main(main) where
 
 import Data.STAR.ChemShifts as CS
 import Text.Printf(hPrintf)
-import System.IO(IOMode(WriteMode), hPrint, stderr, withFile)
+import System.IO(IOMode(WriteMode), stderr, withFile, hPutStrLn)
 import System.Environment(getArgs)
 import Control.Monad(forM_)
 import qualified Data.ByteString.Char8 as BS
@@ -27,7 +27,7 @@ FORMAT %4d %1s %4s %8.3f
 header = "VARS   RESID RESNAME ATOMNAME SHIFT\nFORMAT %4d %1s %4s %8.3f"
 
 printTBL cs filename = withFile filename WriteMode $ \outh ->
-                         do hPrint outh header
+                         do hPutStrLn outh header
                             forM_ cs $ printRec outh
   where
     printRec outh (ChemShift { seq_id    = resid  ,
@@ -46,7 +46,7 @@ main = do [input, offsetString, output] <- getArgs
           result <- CS.parse input
           let offset :: Int = read offsetString
           case result of
-            Left error -> hPrint stderr error
+            Left error -> hPutStrLn stderr error
             Right cs   -> do hPrintf stderr "Read %d records.\n" $ Prelude.length cs
                              let cs2 = reindex offset cs
                              printTBL cs2 output
