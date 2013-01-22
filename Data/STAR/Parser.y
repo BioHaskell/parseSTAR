@@ -9,10 +9,10 @@ import qualified Data.STAR.Tokens as Tokens
 import Control.Monad(liftM, liftM2)
 import Control.Monad.State.Strict
 import qualified Data.STAR.Type as Type
-import Prelude hiding (String, getContents, drop, take, (++), catch)
+import Prelude hiding (String, getContents, drop, take, (++))
 import Data.ByteString.Char8    as BSC
 import Control.DeepSeq
-import Control.Exception(SomeException, catch)
+import qualified Control.Exception as Exc -- (SomeException, catch)
 import qualified GHC.Exts as Happy_GHC_Exts
 import Data.STAR.StringUtil
 import qualified Data.List(isSuffixOf, (++))
@@ -147,11 +147,11 @@ parseFileCompressed isCompressed fname = (do r <- reader fname
                                                                                                                      "(lexer state is ", show st, ")"]
                                                                                        
                                                Right result                       -> return $ Right $ Type.STAR result
-                                         ) `catch` handler
+                                         ) `Exc.catch` handler
   where reader = if isCompressed
                    then compressedRead
                    else simpleRead
-        handler (e :: SomeException) = return . Left . Prelude.concat $ ["Error in ", fname, ": ", show e]
+        handler (e :: Exc.SomeException) = return . Left . Prelude.concat $ ["Error in ", fname, ": ", show e]
 
 parseCompressedFile fname = parseFileCompressed True fname
 
