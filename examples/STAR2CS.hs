@@ -9,6 +9,10 @@ import Control.Monad(forM_)
 import qualified Data.ByteString.Char8 as BS
 import Data.Maybe(catMaybes)
 
+-- TODO: generate sequence
+-- TODO: add cutting all before Nth, and after Nth residue.
+-- TODO: add CLI option parsing from template
+-- TODO: make a general Data.STAR.TBL module for TBL conversion and in/out?
 {- Output format:
 DATA SEQUENCE GR NSAKDIRTEERARVQLGNVVT AAAL GSGSGSGSGSGS
 DATA SEQUENCE TT NSVETVVGKGESRVLIGNEYG GKGF GSGSGSGSGSGS
@@ -36,18 +40,23 @@ printTBL cs filename = withFile filename WriteMode $ \outh ->
                                chemshift = cs     ,
                                sigma     = sigma  }) = hPrintf outh "%4d %1s %4s %8.3f\n" resid (BS.unpack resname) (BS.unpack atname) cs
 
-reindex i cs = catMaybes . map (reindexRecord i) $ cs
+reindex i cs = map (reindexRecord i) cs
   where
-    reindexRecord i cs@(ChemShift { seq_id = resid }) = if seq_id cs + i > 0
-                                                          then Just $ cs { seq_id = seq_id cs + i }
-                                                          else Nothing
+    reindexRecord i cs@(ChemShift { seq_id = resid }) = cs { seq_id = seq_id cs + i }
 
-main = do [input, offsetString, output] <- getArgs
+cut start end cs = filter isWithin cs
+  where
+    isWithin (ChemShift { seq_id = resid }) = (resid > start) && (resid < end)
+
+main = do [input, offsetString, startResidueString, endResidueString, output] <- getArgs
           result <- CS.parse input
-          let offset :: Int = read offsetString
+          let offset       :: Int = read offsetString
+          let startResidue :: Int = read startResidueString
+          let endResidue   :: Int = read endResidueString
           case result of
             Left error -> hPutStrLn stderr error
             Right cs   -> do hPrintf stderr "Read %d records.\n" $ Prelude.length cs
-                             let cs2 = reindex offset cs
+                             hPrintf stderr "Filtering those between %d and %d\n" startResidue endResidue
+                             let cs2 = reindex offset $ cut startResidue endResidue cs
                              printTBL cs2 output
 
