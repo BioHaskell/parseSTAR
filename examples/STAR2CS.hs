@@ -40,23 +40,11 @@ printTBL cs filename = withFile filename WriteMode $ \outh ->
                                chemshift = cs     ,
                                sigma     = sigma  }) = hPrintf outh "%4d %1s %4s %8.3f\n" resid (BS.unpack resname) (BS.unpack atname) cs
 
-reindex i cs = map (reindexRecord i) cs
-  where
-    reindexRecord i cs@(ChemShift { seq_id = resid }) = cs { seq_id = seq_id cs + i }
 
-cut start end cs = filter isWithin cs
-  where
-    isWithin (ChemShift { seq_id = resid }) = (resid > start) && (resid < end)
-
-main = do [input, offsetString, startResidueString, endResidueString, output] <- getArgs
+main = do [input, output] <- getArgs
           result <- CS.parse input
-          let offset       :: Int = read offsetString
-          let startResidue :: Int = read startResidueString
-          let endResidue   :: Int = read endResidueString
           case result of
             Left error -> hPutStrLn stderr error
             Right cs   -> do hPrintf stderr "Read %d records.\n" $ Prelude.length cs
-                             hPrintf stderr "Filtering those between %d and %d\n" startResidue endResidue
-                             let cs2 = reindex offset $ cut startResidue endResidue cs
-                             printTBL cs2 output
+                             printTBL cs output
 
