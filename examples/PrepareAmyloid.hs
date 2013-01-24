@@ -63,7 +63,7 @@ options =
   [-- processing options
    Option ['s'] ["cut-start-to"]  (ReqArg (intOpt $ \a opt -> opt { cutStart = a }) "start" )
            "Cuts residues up to (and including) given number.",
-   Option ['e'] ["cut-tail-from"] (ReqArg (intOpt $ \a opt -> opt { cutStart = a }) "end")
+   Option ['e'] ["cut-tail-from"] (ReqArg (intOpt $ \a opt -> opt { cutEnd   = a }) "end")
            "Cuts residues from (and including) given number.",
    Option ['o'] ["offset"]        (ReqArg (intOpt $ \a opt -> opt { offset   = a }) "offset")
            "Adds a given offset to all residue numbers (may be negative.)",
