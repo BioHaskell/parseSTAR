@@ -32,34 +32,19 @@ library
   --build-tools:         alex, happy
 
 executable  PrintCSTypes
-  main-is: test/PrintCSTypes.hs
-  build-depends: base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array, containers,  zlib >= 0.5
+  Hs-Source-Dirs: test
+  main-is: PrintCSTypes.hs
+  build-depends:       array, base, mtl, binary, bytestring, deepseq, containers, parsestar
   default-language:    Haskell2010
-  other-modules:       Data.STAR.StringUtil Data.STAR.Tokens Data.STAR Data.STAR.Type Data.STAR.ChemShifts Data.STAR.Coords Data.STAR.Parser
-  if flag(old-bytestring)
-    cpp-options: -DDEFINE_NFDATA_BYTESTRING
-    build-depends: bytestring <  0.10
-  else
-    build-depends: bytestring >= 0.10.0.0
 
 executable  MergeCoord
-  main-is: test/MergeCoord.hs
-  build-depends: base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array,  zlib >= 0.5
+  Hs-Source-Dirs: test
+  main-is: MergeCoord.hs
+  build-depends:       array, base, mtl, binary, bytestring, deepseq, parsestar
   default-language:    Haskell2010
-  other-modules:       Data.STAR.StringUtil Data.STAR.Tokens Data.STAR Data.STAR.Type Data.STAR.ChemShifts Data.STAR.Coords Data.STAR.Parser
-  if flag(old-bytestring)
-    cpp-options: -DDEFINE_NFDATA_BYTESTRING
-    build-depends: bytestring <  0.10
-  else
-    build-depends: bytestring >= 0.10.0.0
 
 executable TestChemShifts
-  main-is: test/MergeCoord.hs
-  build-depends: base, deepseq, binary, bytestring-nums, bytestring, bytestring-mmap, mtl, array,  zlib >= 0.5
+  Hs-Source-Dirs: test
+  main-is: TestChemShifts.hs
+  build-depends:       array, base, mtl, binary, bytestring, deepseq, parsestar
   default-language:    Haskell2010
-  other-modules:       Data.STAR.StringUtil Data.STAR.Tokens Data.STAR Data.STAR.Type Data.STAR.ChemShifts Data.STAR.Coords Data.STAR.Parser
-  if flag(old-bytestring)
-    cpp-options: -DDEFINE_NFDATA_BYTESTRING
-    build-depends: bytestring <  0.10
-  else
-    build-depends: bytestring >= 0.10.0.0
