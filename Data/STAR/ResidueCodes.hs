@@ -2,7 +2,8 @@
 module Data.STAR.ResidueCodes(allPDBAminoacids
                              ,allFASTAAminoacids
                              ,toSingleLetterCode
-                             ,toThreeLetterCode )
+                             ,maybeToSingleLetterCode
+                             ,toThreeLetterCode      )
 where
 
 import Prelude hiding(String)
@@ -38,6 +39,9 @@ toThreeLetterCode c = case BSC.elemIndex c stdAaSLC of
 -- | Finds a single-letter FASTA code for a given three-letter PDB code (or returns 'X'.)
 toSingleLetterCode :: ByteString -> Char
 toSingleLetterCode c = Data.Map.findWithDefault 'X' c tlcMap
+
+maybeToSingleLetterCode :: ByteString -> Maybe Char
+maybeToSingleLetterCode c = Data.Map.lookup c tlcMap 
 
 tlcMap = Data.Map.fromList $ Data.List.zip (Data.Array.elems stdAaTLC) (BSC.unpack stdAaSLC)
 
