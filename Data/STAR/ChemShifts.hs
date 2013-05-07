@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveDataTypeable #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
 module Data.STAR.ChemShifts(ChemShift(..)
-                           ,extractChemShifts, parse)
+                           ,extractChemShifts
+                           ,parse
+                           ,extractSequenceFromChemShifts
+                           ,showSequenceWithChain)
 where
 
 import           Prelude                             hiding(String)
@@ -9,14 +12,17 @@ import qualified Data.ByteString.Char8               as BSC
 import qualified Data.Binary                         as B
 import           Data.ByteString.Nums.Careless.Float as F
 import           Data.ByteString.Nums.Careless.Int   as I
-import           Data.Binary        (Binary(..))
-import           Control.DeepSeq    (NFData(..))
+import           Data.Binary           (Binary(..))
+import           Control.DeepSeq       (NFData(..))
 import           Data.Typeable
-import           Control.Monad.Trans(lift)
+import           Control.Monad.Trans   (lift)
+import           Control.Arrow         ((&&&))
+import           Data.List             (groupBy, nub)
 
-import           Data.STAR.Parser   (parseFile)
+import           Data.STAR.Parser      (parseFile)
 import           Data.STAR.Type
 import           Data.STAR.Path
+import           Data.STAR.ResidueCodes(toSingleLetterCode)
 
 -- | Record representing single chemical shift.
 data ChemShift = ChemShift { cs_id     :: !Int,
@@ -161,6 +167,42 @@ save_assigned_chem_shift_list_1
       2772 . 1 1 241 241 GLU CB   C 13  29.436 0.000 . 1 . . . 241 GLU CB   . c16678_2ksy 1 
       2773 . 1 1 241 241 GLU N    N 15 118.823 0.172 . 1 . . . 241 GLU N    . c16678_2ksy 1 
 -}
+
+-- | Extracts FASTA sequence from a list of chemical shift records.
+extractSequenceFromChemShifts :: [ChemShift]     -- ^ list of chemical shift records
+                              -> [(Int, [Char])] -- ^ list of chain numbers with their FASTA sequences
+extractSequenceFromChemShifts = map (    (trd3    . head) &&&
+                                     map (seqCode . fst3)) .
+                                groupBy third              .
+                                fillGaps                   .
+                                nub                        .
+                                map extract
+  where
+    extract cs = (comp_id   cs,
+                  seq_id    cs,
+                  entity_id cs)
+    fillGaps ((a,i,e):(b,j,f):rs) |     e /= f = (a,i,e):fillGaps (            (b,j,f):rs)
+    fillGaps ((a,i,e):(b,j,f):rs) | i + 1 >= j = (a,i,e):fillGaps (            (b,j,f):rs)
+    fillGaps ((a,i,e):(b,j,f):rs)              = (a,i,e):fillGaps (("-",i+1,e):(b,j,f):rs)
+    fillGaps                  rs               = rs
+    third (_, _, a) (_, _, b) = a == b
+    fst3    (a, _, _) = a
+    trd3    (_, _, c) = c
+    seqCode "-"       = '-'
+    seqCode x         = toSingleLetterCode x
+    -- TODO: check monotonicity of sequence numbers.
+
+-- | Shows FASTA record for a given filename, and chain identifier.
+showSequenceWithChain ::       [Char]  -- ^ name of sequence source
+                      -> (Int, [Char]) -- ^ chain number and FASTA sequence
+                      ->       [Char]  -- ^ result string
+showSequenceWithChain fname (chain, seq) = concat [">",
+                                                   fname,
+                                                   ":",
+                                                   show chain,
+                                                   "\n",
+                                                   seq]
+
 
 -- | Parse NMR-STAR file and and return either error message, or list of chemical shifts.
 parse ::  [Char] -- filename
