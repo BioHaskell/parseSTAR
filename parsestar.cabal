@@ -1,5 +1,5 @@
 name:                parsestar
-version:             1.3
+version:             1.4
 synopsis:            NMR-STAR file format parser.
 description:         Parser for NMR-STAR data used by BMRB databank repository
                      of biological nuclear magnetic resonance data.
