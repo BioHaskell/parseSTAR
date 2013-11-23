@@ -173,7 +173,7 @@ extractSequenceFromChemShifts :: [ChemShift]     -- ^ list of chemical shift rec
                               -> [(Int, [Char])] -- ^ list of chain numbers with their FASTA sequences
 extractSequenceFromChemShifts = map (    (trd3    . head) &&&
                                      map (seqCode . fst3)) .
-                                groupBy third              .
+                                groupBy thirdEq            .
                                 fillGaps                   .
                                 nub                        .
                                 map extract
@@ -185,11 +185,12 @@ extractSequenceFromChemShifts = map (    (trd3    . head) &&&
     fillGaps ((a,i,e):(b,j,f):rs) | i + 1 >= j = (a,i,e):fillGaps (            (b,j,f):rs)
     fillGaps ((a,i,e):(b,j,f):rs)              = (a,i,e):fillGaps (("-",i+1,e):(b,j,f):rs)
     fillGaps                  rs               = rs
-    third (_, _, a) (_, _, b) = a == b
-    fst3    (a, _, _) = a
-    trd3    (_, _, c) = c
-    seqCode "-"       = '-'
-    seqCode x         = toSingleLetterCode x
+    thirdEq (_, _, a) (_, _, b) = a == b
+    fst3    (a, _, _)         = a
+    trd3    (_, _, c)         = c
+    seqCode x | BSC.length x == 1 && BSC.head x `BSC.elem` "ACGUT-" = BSC.head x
+    seqCode x                                                       = toSingleLetterCode x
+    
     -- TODO: check monotonicity of sequence numbers.
 
 -- | Shows FASTA record for a given filename, and chain identifier.
