@@ -1,10 +1,10 @@
 #GHCFLAGS=-debug
 #GHCFLAGS=-rtsopts -prof -auto-all +RTS -H2G -RTS
-#GHCFLAGS=-O3 -rtsopts +RTS -H2G -A1M -RTS
-#GHCFLAGS=-prof -auto-all -rtsopts +RTS -H2G -A1M -RTS
-GHCFLAGS=-rtsopts +RTS -H2G -A1M -RTS
+GHCFLAGS=-O3 -rtsopts +RTS -H2G -A1M -RTS -DDEFINE_NFDATA_BYTESTRING
+#GHCFLAGS=-prof -auto-all -rtsopts +RTS -H2G -A1M -RTS -DDEFINE_NFDATA_BYTESTRING
+#GHCFLAGS=-rtsopts +RTS -H2G -A1M -RTS # GIVES CRASH?
 #RTSFLAGS=-xc -k512M
-RTSFLAGS=+RTS -k256M -H3G -A1M -s -RTS
+#RTSFLAGS=+RTS -k256M -H3G -A1M -s -RTS
 ALEXFLAGS=--ghc --template=alex/
 HAPPYFLAGS=--ghc --strict #--decode
 #HAPPYFLAGS=--glr

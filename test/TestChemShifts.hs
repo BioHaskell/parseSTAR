@@ -2,12 +2,13 @@
 module Main(main)
 where
 
-import Data.STAR.ChemShifts(ChemShift(..), parse)
 import System.Environment(getArgs, getProgName)
 import System.IO(hPrint, hPutStr, hPutStrLn, stderr)
 import Data.Binary
 import System.Exit(exitFailure, exitSuccess)
 import Control.Monad(when)
+
+import Data.STAR.ChemShifts(ChemShift(..), parse)
 
 printUsage = do prog <- getProgName
                 hPutStrLn stderr $ usageStr prog

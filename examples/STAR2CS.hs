@@ -38,7 +38,9 @@ printTBL cs filename = withFile filename WriteMode $ \outh ->
                                comp_id   = resname,
                                atom_id   = atname ,
                                chemshift = cs     ,
-                               sigma     = sigma  }) = hPrintf outh "%4d %1s %4s %8.3f\n" resid (BS.unpack resname) (BS.unpack atname) cs
+                               sigma     = sigma  }) = hPrintf outh "%4d %1s %4s %8.3f\n"
+                                                                    resid
+                                                                    (BS.unpack resname) (BS.unpack atname) cs
 
 
 main = do [input, output] <- getArgs

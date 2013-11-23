@@ -1,23 +1,30 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveDataTypeable #-}
 {-# OPTIONS_GHC -F -pgmFderive -optF-F #-}
-module Data.STAR.ChemShifts(ChemShift(..), extractChemShifts, parse)
+module Data.STAR.ChemShifts(ChemShift(..)
+                           ,extractChemShifts
+                           ,parse
+                           ,extractSequenceFromChemShifts
+                           ,showSequenceWithChain)
 where
 
-import Prelude hiding(String)
-import qualified Data.ByteString.Char8 as BSC
-import Data.ByteString.Nums.Careless.Float as F
-import Data.ByteString.Nums.Careless.Int   as I
-import Data.Binary(Binary(..))
-import qualified Data.Binary        as B
---import qualified Data.Binary.Shared as S
-import Control.DeepSeq(NFData(..))
-import Data.Typeable
-import Control.Monad.Trans (lift)
+import           Prelude                             hiding(String)
+import qualified Data.ByteString.Char8               as BSC
+import qualified Data.Binary                         as B
+import           Data.ByteString.Nums.Careless.Float as F
+import           Data.ByteString.Nums.Careless.Int   as I
+import           Data.Binary           (Binary(..))
+import           Control.DeepSeq       (NFData(..))
+import           Data.Typeable
+import           Control.Monad.Trans   (lift)
+import           Control.Arrow         ((&&&))
+import           Data.List             (groupBy, nub)
 
-import Data.STAR.Parser(parseFile)
-import Data.STAR.Type
-import Data.STAR.Path
+import           Data.STAR.Parser      (parseFile)
+import           Data.STAR.Type
+import           Data.STAR.Path
+import           Data.STAR.ResidueCodes(toSingleLetterCode)
 
+-- | Record representing single chemical shift.
 data ChemShift = ChemShift { cs_id     :: !Int,
                              seq_id    :: !Int,
                              entity_id :: !Int,
@@ -36,11 +43,15 @@ deriving instance Binary ChemShift
 deriving instance NFData ChemShift
 !-}
 
+-- | Extracts chemical shift list from a STAR file contents.
+extractChemShifts ::  STAR -> [ChemShift]
 extractChemShifts (STAR l) = concatMap extract' l
   where
     extract' (Global l) = []
     extract' (Data _ l) = concatMap chemShiftFrame l
 
+-- | Go down STAREntry and extract frame with chemical shifts.
+chemShiftFrame ::  STAREntry -> [ChemShift]
 chemShiftFrame (Frame name elts) | frameCategory elts == "assigned_chemical_shifts" = concatMap chemShiftLoop elts
   where
     frameCategory elts = emptyHead $ elts ->// entriesByName "Assigned_chem_shift_list.Sf_category" ./ entryValue
@@ -48,10 +59,18 @@ chemShiftFrame (Frame name elts) | frameCategory elts == "assigned_chemical_shif
     emptyHead l  = head l
 chemShiftFrame _                                                                    = []
 
-
+-- | Maps an NMR-STAR loop with chemical shifts into ChemShift records.
+chemShiftLoop ::  STAREntry -> [ChemShift]
 chemShiftLoop (Loop elts@((Entry e v:_):_)) | "Atom_chem_shift" `BSC.isPrefixOf` e = map extractChemShift elts
-chemShiftLoop _                                                        = []
+chemShiftLoop _                                                                    = []
 
+-- | Empty ChemShift record template.
+-- All field values correspond to "undefined" values,
+-- so it can be later compared with any filled record.
+--
+-- In this particular case it seems to work better than making everything
+-- Maybe.
+emptyChemShift ::  ChemShift
 emptyChemShift = ChemShift { cs_id     = -1,
                              entity_id = -1,
                              seq_id    = -1,
@@ -63,6 +82,8 @@ emptyChemShift = ChemShift { cs_id     = -1,
                              sigma     = -999.999,
                              entry_id  = "<UNKNOWN ENTRY>" }
 
+-- | Does this ChemShift record contain all expected components?
+isFilledChemShift ::  ChemShift -> Bool
 isFilledChemShift cs = all (\f -> f cs) [is_good cs_id,
                                          is_good seq_id,
                                          is_good comp_id,
@@ -83,7 +104,9 @@ compose = foldl apply
   where
     apply e f = f e
 
-extractChemShift :: [STAREntry] -> ChemShift
+-- | Extracts ChemShift records from a list of STAR entries.
+extractChemShift :: [STAREntry] -- parsed STAR file
+                 -> ChemShift
 extractChemShift entries = if isFilledChemShift entry
                              then entry
                              else error $ "Cannot fill entry from: " ++ show entries
@@ -145,7 +168,48 @@ save_assigned_chem_shift_list_1
       2773 . 1 1 241 241 GLU N    N 15 118.823 0.172 . 1 . . . 241 GLU N    . c16678_2ksy 1 
 -}
 
+-- | Extracts FASTA sequence from a list of chemical shift records.
+extractSequenceFromChemShifts :: [ChemShift]     -- ^ list of chemical shift records
+                              -> [(Int, [Char])] -- ^ list of chain numbers with their FASTA sequences
+extractSequenceFromChemShifts = map (    (trd3    . head) &&&
+                                     map (seqCode . fst3)) .
+                                groupBy thirdEq            .
+                                fillGaps                   .
+                                nub                        .
+                                map extract
+  where
+    extract cs = (comp_id   cs,
+                  seq_id    cs,
+                  entity_id cs)
+    fillGaps ((a,i,e):(b,j,f):rs) |     e /= f = (a,i,e):fillGaps (            (b,j,f):rs)
+    fillGaps ((a,i,e):(b,j,f):rs) | i + 1 >= j = (a,i,e):fillGaps (            (b,j,f):rs)
+    fillGaps ((a,i,e):(b,j,f):rs)              = (a,i,e):fillGaps (("-",i+1,e):(b,j,f):rs)
+    fillGaps                  rs               = rs
+    thirdEq (_, _, a) (_, _, b) = a == b
+    fst3    (a, _, _)         = a
+    trd3    (_, _, c)         = c
+    seqCode x | BSC.length x == 1 && BSC.head x `BSC.elem` "ACGUT-" = BSC.head x
+    seqCode x                                                       = toSingleLetterCode x
+    
+    -- TODO: check monotonicity of sequence numbers.
+
+-- | Shows FASTA record for a given filename, and chain identifier.
+showSequenceWithChain ::       [Char]  -- ^ name of sequence source
+                      -> (Int, [Char]) -- ^ chain number and FASTA sequence
+                      ->       [Char]  -- ^ result string
+showSequenceWithChain fname (chain, seq) = concat [">",
+                                                   fname,
+                                                   ":",
+                                                   show chain,
+                                                   "\n",
+                                                   seq]
+
+
+-- | Parse NMR-STAR file and and return either error message, or list of chemical shifts.
+parse ::  [Char] -- filename
+      -> IO (Either [Char] [ChemShift])
 parse input = do dat <- Data.STAR.Parser.parseFile input
                  return $ case dat of
                             Right parsed -> Right $ extractChemShifts parsed
                             Left  e      -> Left e
+
