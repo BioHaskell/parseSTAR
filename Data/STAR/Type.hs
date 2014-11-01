@@ -25,11 +25,13 @@ data STARBlock = Global { entries     :: ![STAREntry]
                         }
   deriving (Show, Eq)
 
+{-
 #ifdef DEFINE_NFDATA_BYTESTRING
 instance NFData BSC.ByteString
   where
     rnf bs = bs `seq` ()
 #endif
+ -}
 
 {-!
 

@@ -32,6 +32,7 @@ import Data.STAR.StringUtil(stringStep)
 }
 
 %wrapper "posn-bytestring-strict"
+-- %wrapper "posn-bytestring-strict"
 
 $white         = [ \t \n \f \v \r \  ]
 $nonwhiteFirst = ~ $white # [ \# \! ] -- non-whitespace
